@@ -20,7 +20,24 @@ const ResultViewer: React.FC<ResultViewerProps> = ({ code }) => {
           <!DOCTYPE html>
           <html lang="en">
             <head>
-              <style>${code.css}</style>
+              <style>
+                html, body {
+                  margin: 0;
+                  padding: 0;
+                  width: 100%;
+                  height: 100%;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  overflow: hidden;
+                }
+                // body > * {
+                //   max-width: 100%;
+                //   max-height: 100%;
+                //   object-fit: contain;
+                // }
+                ${code.css}
+              </style>
             </head>
             <body>
               ${code.html}

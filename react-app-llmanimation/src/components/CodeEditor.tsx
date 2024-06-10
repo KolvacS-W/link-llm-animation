@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import CodeEditor from '@uiw/react-textarea-code-editor';
 
 interface CodeEditorProps {
   onApply: (code: { html: string; css: string; js: string }) => void;
 }
 
-const CodeEditor: React.FC<CodeEditorProps> = ({ onApply }) => {
+const CustomCodeEditor: React.FC<CodeEditorProps> = ({ onApply }) => {
   const [html, setHtml] = useState('');
   const [css, setCss] = useState('');
   const [js, setJs] = useState('');
@@ -18,26 +19,56 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onApply }) => {
     switch (activeTab) {
       case 'html':
         return (
-          <textarea
+          <CodeEditor
             value={html}
-            onChange={(e) => setHtml(e.target.value)}
+            language="html"
             placeholder="Enter HTML here"
+            onChange={(e) => setHtml(e.target.value)}
+            padding={15}
+            style={{
+              fontSize: 12,
+              backgroundColor: '#f5f5f5',
+              fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
+              height: '100%', /* Ensure it takes full height */
+              overflow: 'auto', /* Ensure it scrolls if content overflows */
+            }}
+            className="code-editor-textarea" /* Add the class */
           />
         );
       case 'css':
         return (
-          <textarea
+          <CodeEditor
             value={css}
-            onChange={(e) => setCss(e.target.value)}
+            language="css"
             placeholder="Enter CSS here"
+            onChange={(e) => setCss(e.target.value)}
+            padding={15}
+            style={{
+              fontSize: 12,
+              backgroundColor: '#f5f5f5',
+              fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
+              height: '100%', /* Ensure it takes full height */
+              overflow: 'auto', /* Ensure it scrolls if content overflows */
+            }}
+            className="code-editor-textarea" /* Add the class */
           />
         );
       case 'js':
         return (
-          <textarea
+          <CodeEditor
             value={js}
-            onChange={(e) => setJs(e.target.value)}
+            language="javascript"
             placeholder="Enter JS here"
+            onChange={(e) => setJs(e.target.value)}
+            padding={15}
+            style={{
+              fontSize: 12,
+              backgroundColor: '#f5f5f5',
+              fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
+              height: '100%', /* Ensure it takes full height */
+              overflow: 'auto', /* Ensure it scrolls if content overflows */
+            }}
+            className="code-editor-textarea" /* Add the class */
           />
         );
       default:
@@ -75,4 +106,4 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onApply }) => {
   );
 };
 
-export default CodeEditor;
+export default CustomCodeEditor;

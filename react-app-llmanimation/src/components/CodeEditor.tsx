@@ -1,15 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CodeEditor from '@uiw/react-textarea-code-editor';
 
 interface CodeEditorProps {
+  code: { html: string; css: string; js: string };
   onApply: (code: { html: string; css: string; js: string }) => void;
 }
 
-const CustomCodeEditor: React.FC<CodeEditorProps> = ({ onApply }) => {
-  const [html, setHtml] = useState('');
-  const [css, setCss] = useState('');
-  const [js, setJs] = useState('');
+const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply }) => {
+  const [html, setHtml] = useState(code.html);
+  const [css, setCss] = useState(code.css);
+  const [js, setJs] = useState(code.js);
   const [activeTab, setActiveTab] = useState('html');
+
+  useEffect(() => {
+    setHtml(code.html);
+    setCss(code.css);
+    setJs(code.js);
+  }, [code]);
 
   const handleApply = () => {
     onApply({ html, css, js });

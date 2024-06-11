@@ -121,6 +121,13 @@ iframe {
   margin-top: 10px;
 }
 
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+}
+
 .result-viewer {
   display: flex;
   justify-content: center;

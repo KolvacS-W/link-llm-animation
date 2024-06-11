@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import DescriptionEditor from './components/DescriptionEditor';
-import CodeEditor from './components/CodeEditor';
+import CustomCodeEditor from './components/CodeEditor';
 import ResultViewer from './components/ResultViewer';
 import './App.css';
 
@@ -16,15 +16,15 @@ const App: React.FC = () => {
     setDescription(newDescription);
   };
 
-  const handleCodeApply = (newCode: { html: string; css: string; js: string }) => {
+  const handleCodeInitialize = (newCode: { html: string; css: string; js: string }) => {
     setCode(newCode);
   };
 
   return (
     <div className="App">
       <div className="editor-section">
-        <DescriptionEditor onApply={handleDescriptionApply} />
-        <CodeEditor onApply={handleCodeApply} />
+        <DescriptionEditor onApply={handleDescriptionApply} onInitialize={handleCodeInitialize} />
+        <CustomCodeEditor code={code} onApply={handleCodeInitialize} />
         <ResultViewer code={code} />
       </div>
     </div>

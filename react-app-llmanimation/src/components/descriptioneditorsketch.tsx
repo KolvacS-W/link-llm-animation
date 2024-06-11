@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import ReactLoading from 'react-loading';
 
 interface DescriptionEditorProps {
@@ -6,17 +6,11 @@ interface DescriptionEditorProps {
   onInitialize: (code: { html: string; css: string; js: string }) => void;
 }
 
-const API_KEY = "YOUR_API_KEY_HERE";
+const API_KEY = "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";
 
 const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitialize }) => {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
-  const [formattedDescription, setFormattedDescription] = useState(description);
-  const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
-
-  useEffect(() => {
-    formatDescription();
-  }, [description, showDetails]);
 
   const handleInitialize = async () => {
     onApply(description);
@@ -56,7 +50,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   };
 
   const handleSecondGPTCall = async (newCode: { html: string; css: string; js: string }, existingDescription: string) => {
-    const newPrompt = `Based on the following code and description, provide an updated description. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}. The new description should be same old description + added details to specific parts of the old description (for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet') according to the code, and all the added details should be within {}, and put the correspounding entity the details are describing in []. Put each added detail behind the specific words that directly related to the detail. Include nothing but the new description in the response.`;
+    const newPrompt = `Based on the following code and description, provide an updated description. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}. The new description should be same old description + added details to specific parts of the old description (for example, add number of planets and each planet's dom element type, class, style features and name to keyword 'planet') according to the code, and all the added details should be within {}. Put each added detail behind the specific words that directly related to the detail. Include nothing but the new description in the response.`;
 
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -85,6 +79,13 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
     }
   };
 
+  // const extractDescription = (response: string): string => {
+  //   // This function should parse the response from GPT-3 and extract the useful description part
+  //   // const match = response.match(/Description:([\s\S]*?)$/);
+  //   const match = response;
+  //   return match ? match[1].trim() : '';
+  // };
+
   const parseGPTResponse = (response: string): { html: string; css: string; js: string } => {
     const htmlMatch = response.match(/```html([\s\S]*?)```/);
     const cssMatch = response.match(/```css([\s\S]*?)```/);
@@ -97,49 +98,13 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
     return { html, css, js };
   };
 
-  const formatDescription = () => {
-    const parts = description.split(/(\[.*?\]\{.*?\})/g);
-    const formattedParts = parts.map((part, index) => {
-      const match = part.match(/\[(.*?)\]\{(.*?)\}/);
-      if (match) {
-        const word = match[1];
-        const details = match[2];
-        const isShown = showDetails[word];
-        return (
-          <span key={index}>
-            <span
-              style={{ color: 'red', cursor: 'pointer' }}
-              onClick={() => toggleDetails(word)}
-            >
-              [{word}]
-            </span>
-            {isShown && <span style={{ color: 'orange' }}>{`{${details}}`}</span>}
-          </span>
-        );
-      }
-      return part;
-    });
-    setFormattedDescription(formattedParts);
-  };
-
-  const toggleDetails = (word: string) => {
-    setShowDetails(prev => ({ ...prev, [word]: !prev[word] }));
-  };
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setDescription(e.target.value);
-  };
-
   return (
     <div className="description-editor">
       <textarea
         value={description}
-        onChange={handleTextChange}
+        onChange={(e) => setDescription(e.target.value)}
         placeholder="Enter description here"
       />
-      <div className="formatted-description">
-        {formattedDescription}
-      </div>
       <div className="button-group">
         <button className="purple-button" onClick={handleInitialize}>Initialize Description</button>
         <button className="purple-button" onClick={() => onApply(description)}>Update Description</button>

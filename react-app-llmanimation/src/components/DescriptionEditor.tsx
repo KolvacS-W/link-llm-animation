@@ -18,7 +18,11 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply }) => {
         onChange={(e) => setDescription(e.target.value)}
         placeholder="Enter description here"
       />
-      <button onClick={handleApply}>Apply Description</button>
+      <div className="button-group">
+        <button className="purple-button" onClick={handleApply}>Initialize Description</button>
+        <button className="purple-button" onClick={handleApply}>Update Description</button>
+        <button className="blue-button" onClick={handleApply}>Adjust Description</button>
+      </div>
     </div>
   );
 };

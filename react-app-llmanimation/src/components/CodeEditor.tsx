@@ -29,10 +29,10 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ onApply }) => {
               fontSize: 12,
               backgroundColor: '#f5f5f5',
               fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
-              height: '100%', /* Ensure it takes full height */
-              overflow: 'auto', /* Ensure it scrolls if content overflows */
+              height: '100%',
+              overflow: 'auto',
             }}
-            className="code-editor-textarea" /* Add the class */
+            className="code-editor-textarea"
           />
         );
       case 'css':
@@ -47,10 +47,10 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ onApply }) => {
               fontSize: 12,
               backgroundColor: '#f5f5f5',
               fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
-              height: '100%', /* Ensure it takes full height */
-              overflow: 'auto', /* Ensure it scrolls if content overflows */
+              height: '100%',
+              overflow: 'auto',
             }}
-            className="code-editor-textarea" /* Add the class */
+            className="code-editor-textarea"
           />
         );
       case 'js':
@@ -65,10 +65,10 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ onApply }) => {
               fontSize: 12,
               backgroundColor: '#f5f5f5',
               fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
-              height: '100%', /* Ensure it takes full height */
-              overflow: 'auto', /* Ensure it scrolls if content overflows */
+              height: '100%',
+              overflow: 'auto',
             }}
-            className="code-editor-textarea" /* Add the class */
+            className="code-editor-textarea"
           />
         );
       default:
@@ -101,7 +101,11 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ onApply }) => {
       <div className="editor-container">
         {renderActiveTab()}
       </div>
-      <button onClick={handleApply}>Apply Code</button>
+      <div className="button-group">
+        <button className="purple-button" onClick={handleApply}>Initialize Code</button>
+        <button className="purple-button" onClick={handleApply}>Update Code</button>
+        <button className="blue-button" onClick={handleApply}>Adjust Code</button>
+      </div>
     </div>
   );
 };

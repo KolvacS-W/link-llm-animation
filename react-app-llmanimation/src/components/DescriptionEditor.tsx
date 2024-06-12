@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ReactLoading from 'react-loading';
 
 interface DescriptionEditorProps {
@@ -11,8 +11,8 @@ const API_KEY = "YOUR_API_KEY_HERE";
 const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitialize }) => {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
-  const [formattedDescription, setFormattedDescription] = useState(description);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
+  const formattedDescriptionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     formatDescription();
@@ -22,7 +22,6 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
     onApply(description);
     setLoading(true);
 
-    // to initiate code with description
     const prompt = `Create an animation using anime.js based on the given instruction. Make the result animation on a square page that can fit and center on any pages. You can refer to this code snippet to Use customizable svg paths for object movement. Return response in this format: (Code:  \`\`\`html html code \`\`\`html, \`\`\`js javascript code, leave blank if none \`\`\`js, \`\`\`css css code, leave blank if none \`\`\`css; Explanation: explanations of the code). Instruction: ${description}`;
 
     try {
@@ -40,12 +39,11 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
 
       const data = await response.json();
       const content = data.choices[0]?.message?.content;
-      console.log('sent initial description')
+      console.log('sent initial description');
 
       if (content) {
         const newCode = parseGPTResponse(content);
         onInitialize(newCode);
-        //to update the details of descriptions
         await handleSecondGPTCall(newCode, description);
       }
     } catch (error) {
@@ -56,7 +54,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   };
 
   const handleSecondGPTCall = async (newCode: { html: string; css: string; js: string }, existingDescription: string) => {
-    const newPrompt = `Based on the following code and description, provide an updated description. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}. The new description should be same old description + added details to specific parts of the old description (for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet') according to the code, and all the added details should be within {}, and put the correspounding entity the details are describing in []. Put each added detail behind the specific words that directly related to the detail. Include nothing but the new description in the response.`;
+    const newPrompt = `Based on the following code and description, provide an updated description. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}. The new description should be same old description + added details to specific parts of the old description (for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet') according to the code, and all the added details should be within (), and put the corresponding entity the details are describing in (). Put each added detail behind the specific words that directly related to the detail. Include nothing but the new description in the response.`;
 
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -70,14 +68,12 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
           messages: [{ role: "system", content: "You are a creative programmer." }, { role: "user", content: newPrompt }],
         }),
       });
-      console.log('sent description update')
+      console.log('sent description update');
       const data = await response.json();
       const newDescriptionContent = data.choices[0]?.message?.content;
-      console.log('second call data', newDescriptionContent)
+      console.log('second call data', newDescriptionContent);
       if (newDescriptionContent) {
-        // const updatedDescription = extractDescription(newDescriptionContent);
-        // setDescription(updatedDescription);
-        setDescription(newDescriptionContent)
+        setDescription(newDescriptionContent);
         onApply(newDescriptionContent);
       }
     } catch (error) {
@@ -98,48 +94,55 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   };
 
   const formatDescription = () => {
-    const parts = description.split(/(\[.*?\]\{.*?\})/g);
-    const formattedParts = parts.map((part, index) => {
-      const match = part.match(/\[(.*?)\]\{(.*?)\}/);
-      if (match) {
-        const word = match[1];
-        const details = match[2];
-        const isShown = showDetails[word];
-        return (
-          <span key={index}>
-            <span
-              style={{ color: 'red', cursor: 'pointer' }}
-              onClick={() => toggleDetails(word)}
-            >
-              [{word}]
-            </span>
-            {isShown && <span style={{ color: 'orange' }}>{`{${details}}`}</span>}
-          </span>
-        );
-      }
-      return part;
-    });
-    setFormattedDescription(formattedParts);
+    if (formattedDescriptionRef.current) {
+      const desc = description.replace(/\[(.*?)\]\((.*?)\)/g, (match, p1, p2, offset, string) => {
+        const isShown = showDetails[p1];
+        return `<span style="color: red; cursor: pointer;" data-word="${p1}">[${p1}]</span>${isShown ? `<span style="color: orange;">(${p2})</span>` : ''}`;
+      });
+      formattedDescriptionRef.current.innerHTML = desc;
+    }
   };
 
   const toggleDetails = (word: string) => {
     setShowDetails(prev => ({ ...prev, [word]: !prev[word] }));
   };
 
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setDescription(e.target.value);
+  const handleContentEditableInput = () => {
+    if (formattedDescriptionRef.current) {
+      const newDescription = formattedDescriptionRef.current.innerText;
+      setDescription(newDescription);
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.dataset.word) {
+      toggleDetails(target.dataset.word);
+    }
   };
 
   return (
     <div className="description-editor">
       <textarea
         value={description}
-        onChange={handleTextChange}
+        onChange={(e) => setDescription(e.target.value)}
         placeholder="Enter description here"
+        style={{ display: 'none' }} // Hide the textarea
       />
-      <div className="formatted-description">
-        {formattedDescription}
-      </div>
+      <div
+        className="formatted-description"
+        contentEditable
+        ref={formattedDescriptionRef}
+        onInput={handleContentEditableInput}
+        onClick={handleClick}
+        style={{
+          whiteSpace: 'pre-wrap',
+          wordWrap: 'break-word',
+          border: '1px solid #ccc',
+          padding: '10px',
+          minHeight: '150px',
+        }}
+      />
       <div className="button-group">
         <button className="purple-button" onClick={handleInitialize}>Initialize Description</button>
         <button className="purple-button" onClick={() => onApply(description)}>Update Description</button>

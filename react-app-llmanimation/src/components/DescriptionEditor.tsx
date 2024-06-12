@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactLoading from 'react-loading';
-import { Editor, EditorState, ContentState, convertFromHTML, RichUtils, DraftHandleValue } from 'draft-js';
-import 'draft-js/dist/Draft.css';
+import ContentEditable from './ContentEditable';
 
 interface DescriptionEditorProps {
   onApply: (description: string) => void;
@@ -14,11 +13,6 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
-  const [editorState, setEditorState] = useState(() => EditorState.createEmpty());
-
-  useEffect(() => {
-    formatDescription(description);
-  }, [description, showDetails]);
 
   const handleInitialize = async () => {
     onApply(description);
@@ -77,7 +71,6 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
       if (newDescriptionContent) {
         setDescription(newDescriptionContent);
         onApply(newDescriptionContent);
-        formatDescription(newDescriptionContent);
       }
     } catch (error) {
       console.error("Error processing second request:", error);
@@ -96,87 +89,27 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
     return { html, css, js };
   };
 
-  const formatDescription = (desc: string) => {
-    const parts = desc.split(/(\[.*?\]\{.*?\})/g);
-    const blocksFromHTML = parts.map((part) => {
-      const match = part.match(/\[(.*?)\]\{(.*?)\}/);
-      if (match) {
-        const word = match[1];
-        const details = match[2];
-        const isShown = showDetails[word];
-        const htmlString = isShown
-          ? `<span style="color: red; cursor: pointer;">[${word}]</span><span style="color: orange;">{${details}}</span>`
-          : `<span style="color: red; cursor: pointer;">[${word}]</span>`;
-        return convertFromHTML(htmlString).contentBlocks;
-      }
-      return convertFromHTML(part).contentBlocks;
-    }).flat();
-
-    const contentState = ContentState.createFromBlockArray(blocksFromHTML);
-    setEditorState(EditorState.createWithContent(contentState));
-  };
-
   const toggleDetails = (word: string) => {
     setShowDetails(prev => ({ ...prev, [word]: !prev[word] }));
   };
 
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setDescription(e.target.value);
-  };
-
-  const handleRightClick = (e: React.MouseEvent, word: string) => {
-    e.preventDefault(); // Prevent the default context menu from appearing
-    toggleDetails(word);
-  };
-
-  const handleBeforeInput = (chars: string, editorState: EditorState, eventTimeStamp: number): DraftHandleValue => {
-    if (chars === '{' || chars === '}') {
-      // Handle special characters {} here if needed
-      return 'handled';
-    }
-    return 'not-handled';
-  };
-
-  const handlePastedText = (text: string, html: string | undefined, editorState: EditorState): DraftHandleValue => {
-    // Handle pasted text here if needed
-    return 'not-handled';
+  const handleTextChange = (value: string) => {
+    // setDescription(value);
   };
 
   return (
     <div className="description-editor">
       <textarea
         value={description}
-        onChange={handleTextChange}
+        onChange={(e) => setDescription(e.target.value)}
         placeholder="Enter description here"
       />
-      <div className="formatted-description" onContextMenu={(e) => e.preventDefault()}>
-        <Editor
-          editorState={editorState}
-          handleBeforeInput={handleBeforeInput}
-          handlePastedText={handlePastedText}
-          onChange={setEditorState}
-          customStyleMap={{
-            RED: { color: 'red', cursor: 'pointer' },
-            ORANGE: { color: 'orange' }
-          }}
-          blockRendererFn={(contentBlock) => {
-            const text = contentBlock.getText();
-            const match = text.match(/\[(.*?)\]\{(.*?)\}/);
-            if (match) {
-              const word = match[1];
-              return {
-                component: () => (
-                  <span onContextMenu={(e) => handleRightClick(e, word)}>
-                    {text}
-                  </span>
-                ),
-                editable: true,
-              };
-            }
-            return null;
-          }}
-        />
-      </div>
+      <ContentEditable
+        value={description}
+        onChange={handleTextChange}
+        onRightClick={toggleDetails}
+        showDetails={showDetails}
+      />
       <div className="button-group">
         <button className="purple-button" onClick={handleInitialize}>Initialize Description</button>
         <button className="purple-button" onClick={() => onApply(description)}>Update Description</button>

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactLoading from 'react-loading';
 
 interface DescriptionEditorProps {
@@ -12,11 +12,6 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
-  const formattedDescriptionRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    formatDescription();
-  }, [description, showDetails]);
 
   const handleInitialize = async () => {
     onApply(description);
@@ -54,7 +49,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   };
 
   const handleSecondGPTCall = async (newCode: { html: string; css: string; js: string }, existingDescription: string) => {
-    const newPrompt = `Based on the following code and description, provide an updated description. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}. The new description should be same old description + added details to specific parts of the old description (for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet') according to the code, and all the added details should be within (), and put the corresponding entity the details are describing in (). Put each added detail behind the specific words that directly related to the detail. Include nothing but the new description in the response.`;
+    const newPrompt = `Based on the following code and description, provide an updated description. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}. The new description should be same old description + added details to specific parts of the old description (for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet') according to the code, and all the added details should be within {}, and put the corresponding entity the details are describing in []. Put each added detail behind the specific words that directly related to the detail. Include nothing but the new description in the response.`;
 
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -93,56 +88,53 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
     return { html, css, js };
   };
 
-  const formatDescription = () => {
-    if (formattedDescriptionRef.current) {
-      const desc = description.replace(/\[(.*?)\]\((.*?)\)/g, (match, p1, p2, offset, string) => {
-        const isShown = showDetails[p1];
-        return `<span style="color: red; cursor: pointer;" data-word="${p1}">[${p1}]</span>${isShown ? `<span style="color: orange;">(${p2})</span>` : ''}`;
-      });
-      formattedDescriptionRef.current.innerHTML = desc;
-    }
+  const formatDescription = (desc: string) => {
+    const parts = desc.split(/(\[.*?\]\{.*?\})/g);
+    return parts.map((part, index) => {
+      const match = part.match(/\[(.*?)\]\{(.*?)\}/);
+      if (match) {
+        const word = match[1];
+        const details = match[2];
+        const isShown = showDetails[word];
+        return (
+          <span key={index}>
+            <span
+              style={{ color: 'red', cursor: 'pointer' }}
+              onContextMenu={(e) => handleRightClick(e, word)}
+            >
+              [{word}]
+            </span>
+            {isShown && <span style={{ color: 'orange' }}>{`{${details}}`}</span>}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
+  const handleRightClick = (e: React.MouseEvent, word: string) => {
+    e.preventDefault(); // Prevent the default context menu from appearing
+    toggleDetails(word);
   };
 
   const toggleDetails = (word: string) => {
     setShowDetails(prev => ({ ...prev, [word]: !prev[word] }));
   };
 
-  const handleContentEditableInput = () => {
-    if (formattedDescriptionRef.current) {
-      const newDescription = formattedDescriptionRef.current.innerText;
-      setDescription(newDescription);
-    }
-  };
-
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.dataset.word) {
-      toggleDetails(target.dataset.word);
-    }
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setDescription(e.target.value);
   };
 
   return (
     <div className="description-editor">
       <textarea
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        onChange={handleTextChange}
         placeholder="Enter description here"
-        style={{ display: 'none' }} // Hide the textarea
       />
-      <div
-        className="formatted-description"
-        contentEditable
-        ref={formattedDescriptionRef}
-        onInput={handleContentEditableInput}
-        onClick={handleClick}
-        style={{
-          whiteSpace: 'pre-wrap',
-          wordWrap: 'break-word',
-          border: '1px solid #ccc',
-          padding: '10px',
-          minHeight: '150px',
-        }}
-      />
+      <div className="formatted-description">
+        {formatDescription(description)}
+      </div>
       <div className="button-group">
         <button className="purple-button" onClick={handleInitialize}>Initialize Description</button>
         <button className="purple-button" onClick={() => onApply(description)}>Update Description</button>

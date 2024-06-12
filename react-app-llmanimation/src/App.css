@@ -149,16 +149,56 @@ iframe {
 }
 
 .description-editor {
+  position: relative;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  height: 100%;
 }
 
-.editable-description {
-  min-height: 100px;
-  border: 1px solid #ccc;
-  padding: 10px;
+.switch-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+textarea {
+  flex: 1;
+  width: 100%;
+  margin-bottom: 10px;
+  resize: none;
   overflow: auto;
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 0.8;
+}
+
+.purple-button {
+  background-color: #6a0dad;
+  color: white;
+}
+
+.blue-button {
+  background-color: #007bff;
+  color: white;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
 }
 
 .formatted-description {
@@ -166,9 +206,12 @@ iframe {
   word-wrap: break-word;
 }
 
-.button-group {
-  display: flex;
-  gap: 10px;
-}
+
+
+
+
+
+
+
 
 

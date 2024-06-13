@@ -13,7 +13,12 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
+  const [latestText, setLatestText] = useState(description); // Initialize with description
 
+  useEffect(() => {
+    setLatestText(description); // Update latestText when description changes
+  }, [description]);
+  
   const handleInitialize = async () => {
     onApply(description);
     setLoading(true);
@@ -91,36 +96,39 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
 
   const toggleDetails = (word: string) => {
     setShowDetails(prev => ({ ...prev, [word]: !prev[word] }));
+    console.log('toggleDetails', latestText)
+    setDescription(latestText); // Set description to the latest text when right-click is called
   };
 
   const handleTextChange = (html: string) => {
     // console.log('html', html);
-    // const doc = new DOMParser().parseFromString(html, 'text/html');
+    const extractText = (node: ChildNode): string => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return node.textContent || '';
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement;
+        const word = element.getAttribute('data-word');
+        if (word) {
+          const detailsElement = element.querySelector('span[style="color: orange;"]');
+          const details = detailsElement ? detailsElement.textContent : '';
+          return `[${word}]${details ? ` {${details}}` : ''}`;
+        }
+        return Array.from(node.childNodes).map(extractText).join('');
+      }
+      return '';
+    };
 
-    // const extractText = (node: ChildNode): string => {
-    //   if (node.nodeType === Node.TEXT_NODE) {
-    //     return node.textContent || '';
-    //   } else if (node.nodeType === Node.ELEMENT_NODE) {
-    //     const element = node as HTMLElement;
-    //     const word = element.getAttribute('data-word');
-    //     if (word) {
-    //       const detailsElement = element.querySelector('span[style="color: orange;"]');
-    //       const details = detailsElement ? detailsElement.textContent : '';
-    //       return `[${word}]${details ? ` {${details}}` : ''}`;
-    //     }
-    //     return Array.from(node.childNodes).map(extractText).join('');
-    //   }
-    //   return '';
-    // };
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const text = Array.from(doc.body.childNodes)
+      .map(extractText)
+      .join('')
+      .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
+      .replace('\n', ' ')
+      .replace('] {', ']{') // Replace '] {' with ']{'
+      .trim(); // Trim any leading or trailing whitespace
 
-    // const text = Array.from(doc.body.childNodes)
-    //   .map(extractText)
-    //   .join('')
-    //   .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
-    //   .trim(); // Trim any leading or trailing whitespace
-
-    // console.log('handletextchange', text);
-    // setDescription(text); // Uncomment to set description
+    console.log('handleTextChange', text);
+    setLatestText(text); // Save the newest text
   };
 
   const handleTabPress = (value: string) => {

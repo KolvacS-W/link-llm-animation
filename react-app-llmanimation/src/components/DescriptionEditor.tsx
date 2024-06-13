@@ -93,9 +93,37 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
     setShowDetails(prev => ({ ...prev, [word]: !prev[word] }));
   };
 
-  const handleTextChange = (value: string) => {
-    // setDescription(value);
+  const handleTextChange = (html: string) => {
+    console.log('html', html);
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+  
+    const extractText = (node: ChildNode): string => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return node.textContent || '';
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement;
+        const word = element.getAttribute('data-word');
+        if (word) {
+          const detailsElement = element.querySelector('span[style="color: orange;"]');
+          const details = detailsElement ? detailsElement.textContent : '';
+          return `[${word}]${details ? ` {${details}}` : ''}`;
+        }
+        return Array.from(node.childNodes).map(extractText).join('');
+      }
+      return '';
+    };
+  
+    const text = Array.from(doc.body.childNodes)
+      .map(extractText)
+      .join('')
+      .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
+      .trim(); // Trim any leading or trailing whitespace
+  
+    console.log('handletextchange', text);
+    // setDescription(text);
   };
+  
+  
 
   return (
     <div className="description-editor">

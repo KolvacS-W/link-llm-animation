@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 
 interface ContentEditableProps {
   value: string;
@@ -8,15 +8,54 @@ interface ContentEditableProps {
 }
 
 const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRightClick, showDetails }) => {
-  const [initialValue, setInitialValue] = useState<string>(value);
+  const [initialValue, setInitialValue] = useState<string>('');
+  const editableRef = useRef<HTMLSpanElement>(null);
+  const savedSelectionRef = useRef<{ startContainer: Node, startOffset: number, endContainer: Node, endOffset: number } | null>(null);
 
   useEffect(() => {
-    setInitialValue(formatDescription(value));
+    setInitialValue(cleanHTML(formatDescription(value)));
   }, [value, showDetails]);
 
+  useLayoutEffect(() => {
+    console.log('check selection', window.getSelection());
+    restoreSelection();
+  });
+
+  const saveSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      savedSelectionRef.current = {
+        startContainer: range.startContainer,
+        startOffset: range.startOffset,
+        endContainer: range.endContainer,
+        endOffset: range.endOffset
+      };
+      console.log('saved selection', savedSelectionRef.current);
+    }
+  };
+
+  const restoreSelection = () => {
+    const sel = window.getSelection();
+    const savedSelection = savedSelectionRef.current;
+    console.log('in restored selection', savedSelection);
+
+    if (savedSelection && sel) {
+      const range = document.createRange();
+      range.setStart(savedSelection.startContainer, savedSelection.startOffset);
+      range.setEnd(savedSelection.endContainer, savedSelection.endOffset);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      console.log('restored selection', window.getSelection());
+    }
+  };
+
   const handleInput = (event: React.FormEvent<HTMLSpanElement>) => {
+    saveSelection();
     const innerHTML = (event.target as HTMLSpanElement).innerHTML;
-    onChange(innerHTML);
+    const cleanedHTML = cleanHTML(innerHTML);
+    onChange(cleanedHTML);
+    setInitialValue(cleanedHTML);
   };
 
   const handleRightClick = (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
@@ -26,6 +65,10 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
     if (word) {
       onRightClick(word);
     }
+  };
+
+  const cleanHTML = (html: string): string => {
+    return html.replace(/&nbsp;/g, ' ').replace(/<div>/g, '<br>').replace(/<\/div>/g, '');
   };
 
   const formatDescription = (desc: string): string => {
@@ -51,6 +94,7 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
 
   return (
     <span
+      ref={editableRef}
       contentEditable
       onInput={handleInput}
       onContextMenu={handleRightClick}

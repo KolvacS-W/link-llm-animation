@@ -14,11 +14,12 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
   const [latestText, setLatestText] = useState(description); // Initialize with description
+  const [hiddenInfo, setHiddenInfo] = useState<string[]>([]); // State to store details in {}
 
   useEffect(() => {
     setLatestText(description); // Update latestText when description changes
   }, [description]);
-  
+
   const handleInitialize = async () => {
     onApply(description);
     setLoading(true);
@@ -101,7 +102,6 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   };
 
   const handleTextChange = (html: string) => {
-    // console.log('html', html);
     const extractText = (node: ChildNode): string => {
       if (node.nodeType === Node.TEXT_NODE) {
         return node.textContent || '';
@@ -119,7 +119,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
     };
 
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    const text = Array.from(doc.body.childNodes)
+    let text = Array.from(doc.body.childNodes)
       .map(extractText)
       .join('')
       .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
@@ -149,16 +149,28 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
     };
 
     const doc = new DOMParser().parseFromString(value, 'text/html');
-    const text = Array.from(doc.body.childNodes)
+    let text = Array.from(doc.body.childNodes)
       .map(extractText)
       .join('')
       .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
       .replace('\n', ' ')
       .replace('] {', ']{') // Replace '] {' with ']{'
       .trim(); // Trim any leading or trailing whitespace
-    console.log('handleTabPress', text)
+
+    console.log('handleTabPress', text);
     setDescription(text);
   };
+
+  // const restoreDetails = (text: string): string => {
+  //   const parts = text.split(/(\[.*?\])/g);
+  //   let hiddenInfoIndex = 0;
+  //   return parts.map(part => {
+  //     if (part.startsWith('[') && part.endsWith(']') && !part.includes('{')) {
+  //       return `${part} {${hiddenInfo[hiddenInfoIndex++]}}`;
+  //     }
+  //     return part;
+  //   }).join('');
+  // };
 
   return (
     <div className="description-editor">
@@ -173,6 +185,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
         onRightClick={toggleDetails}
         showDetails={showDetails}
         onTabPress={handleTabPress} // Pass the new handler for Tab key
+        hiddenInfo={hiddenInfo} // Pass hiddenInfo to ContentEditable
+        setHiddenInfo={setHiddenInfo} // Pass setHiddenInfo function to ContentEditable
       />
       <div className="button-group">
         <button className="purple-button" onClick={handleInitialize}>Initialize Description</button>

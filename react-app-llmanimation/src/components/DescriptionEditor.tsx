@@ -94,9 +94,36 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   };
 
   const handleTextChange = (html: string) => {
-    console.log('html', html);
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-  
+    // console.log('html', html);
+    // const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    // const extractText = (node: ChildNode): string => {
+    //   if (node.nodeType === Node.TEXT_NODE) {
+    //     return node.textContent || '';
+    //   } else if (node.nodeType === Node.ELEMENT_NODE) {
+    //     const element = node as HTMLElement;
+    //     const word = element.getAttribute('data-word');
+    //     if (word) {
+    //       const detailsElement = element.querySelector('span[style="color: orange;"]');
+    //       const details = detailsElement ? detailsElement.textContent : '';
+    //       return `[${word}]${details ? ` {${details}}` : ''}`;
+    //     }
+    //     return Array.from(node.childNodes).map(extractText).join('');
+    //   }
+    //   return '';
+    // };
+
+    // const text = Array.from(doc.body.childNodes)
+    //   .map(extractText)
+    //   .join('')
+    //   .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
+    //   .trim(); // Trim any leading or trailing whitespace
+
+    // console.log('handletextchange', text);
+    // setDescription(text); // Uncomment to set description
+  };
+
+  const handleTabPress = (value: string) => {
     const extractText = (node: ChildNode): string => {
       if (node.nodeType === Node.TEXT_NODE) {
         return node.textContent || '';
@@ -112,18 +139,18 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
       }
       return '';
     };
-  
+
+    const doc = new DOMParser().parseFromString(value, 'text/html');
     const text = Array.from(doc.body.childNodes)
       .map(extractText)
       .join('')
       .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
+      .replace('\n', ' ')
+      .replace('] {', ']{') // Replace '] {' with ']{'
       .trim(); // Trim any leading or trailing whitespace
-  
-    console.log('handletextchange', text);
-    // setDescription(text);
+    console.log('handleTabPress', text)
+    setDescription(text);
   };
-  
-  
 
   return (
     <div className="description-editor">
@@ -137,6 +164,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
         onChange={handleTextChange}
         onRightClick={toggleDetails}
         showDetails={showDetails}
+        onTabPress={handleTabPress} // Pass the new handler for Tab key
       />
       <div className="button-group">
         <button className="purple-button" onClick={handleInitialize}>Initialize Description</button>

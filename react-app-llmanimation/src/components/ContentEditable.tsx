@@ -1,61 +1,33 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface ContentEditableProps {
   value: string;
   onChange: (value: string) => void;
   onRightClick: (word: string) => void;
   showDetails: { [key: string]: boolean };
+  onTabPress: (value: string) => void; // New prop for handling 'Tab' key press
 }
 
-const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRightClick, showDetails }) => {
-  const [initialValue, setInitialValue] = useState<string>('');
-  const editableRef = useRef<HTMLSpanElement>(null);
-  const savedSelectionRef = useRef<{ startContainer: Node, startOffset: number, endContainer: Node, endOffset: number } | null>(null);
+const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRightClick, showDetails, onTabPress }) => {
+  const [initialValue, setInitialValue] = useState<string>(value);
 
   useEffect(() => {
-    setInitialValue(cleanHTML(formatDescription(value)));
+    setInitialValue(formatDescription(value));
   }, [value, showDetails]);
 
-  useLayoutEffect(() => {
-    console.log('check selection', window.getSelection());
-    restoreSelection();
-  });
-
-  const saveSelection = () => {
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const range = sel.getRangeAt(0);
-      savedSelectionRef.current = {
-        startContainer: range.startContainer,
-        startOffset: range.startOffset,
-        endContainer: range.endContainer,
-        endOffset: range.endOffset
-      };
-      console.log('saved selection', savedSelectionRef.current);
-    }
-  };
-
-  const restoreSelection = () => {
-    const sel = window.getSelection();
-    const savedSelection = savedSelectionRef.current;
-    console.log('in restored selection', savedSelection);
-
-    if (savedSelection && sel) {
-      const range = document.createRange();
-      range.setStart(savedSelection.startContainer, savedSelection.startOffset);
-      range.setEnd(savedSelection.endContainer, savedSelection.endOffset);
-      sel.removeAllRanges();
-      sel.addRange(range);
-      console.log('restored selection', window.getSelection());
-    }
-  };
-
   const handleInput = (event: React.FormEvent<HTMLSpanElement>) => {
-    saveSelection();
     const innerHTML = (event.target as HTMLSpanElement).innerHTML;
-    const cleanedHTML = cleanHTML(innerHTML);
-    onChange(cleanedHTML);
-    setInitialValue(cleanedHTML);
+    const sanitizedText = sanitizeText(innerHTML);
+    onChange(sanitizedText);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLSpanElement>) => {
+    if (event.key === 'Tab') {
+      event.preventDefault(); // Prevent the default tab behavior
+      const innerHTML = (event.target as HTMLSpanElement).innerHTML;
+      const sanitizedText = sanitizeText(innerHTML);
+      onTabPress(sanitizedText); // Call the onTabPress function with the sanitized text
+    }
   };
 
   const handleRightClick = (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
@@ -65,10 +37,6 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
     if (word) {
       onRightClick(word);
     }
-  };
-
-  const cleanHTML = (html: string): string => {
-    return html.replace(/&nbsp;/g, ' ').replace(/<div>/g, '<br>').replace(/<\/div>/g, '');
   };
 
   const formatDescription = (desc: string): string => {
@@ -92,11 +60,18 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
     }).join('');
   };
 
+  const sanitizeText = (html: string): string => {
+    const tempElement = document.createElement('div');
+    tempElement.innerHTML = html;
+    const plainText = tempElement.innerText;
+    return plainText;
+  };
+
   return (
     <span
-      ref={editableRef}
       contentEditable
       onInput={handleInput}
+      onKeyDown={handleKeyDown} // Add keydown event listener
       onContextMenu={handleRightClick}
       className="custom-textarea"
       dangerouslySetInnerHTML={{ __html: initialValue }}

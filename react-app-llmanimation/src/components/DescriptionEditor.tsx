@@ -98,7 +98,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   const toggleDetails = (word: string) => {
     setShowDetails(prev => ({ ...prev, [word]: !prev[word] }));
     console.log('toggleDetails', latestText)
-    setDescription(latestText); // Set description to the latest text when right-click is called
+    setDescription(latestText.replace('] {', ']{')); // Set description to the latest text when right-click is called
+    //.replace('] {', ']{') is to detect bugs
   };
 
   const handleTextChange = (html: string) => {
@@ -128,7 +129,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
       .trim(); // Trim any leading or trailing whitespace
 
     console.log('handleTextChange', text);
-    setLatestText(text); // Save the newest text
+    setLatestText(text.replace('] {', ']{')); // Save the newest text
+    //.replace('] {', ']{') is to detect bugs
   };
 
   const handleTabPress = (value: string) => {

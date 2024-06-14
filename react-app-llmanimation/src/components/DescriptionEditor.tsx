@@ -7,7 +7,7 @@ interface DescriptionEditorProps {
   onInitialize: (code: { html: string; css: string; js: string }) => void;
 }
 
-const API_KEY = "YOUR_API_KEY_HERE";
+const API_KEY = "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";
 
 const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitialize }) => {
   const [description, setDescription] = useState('');
@@ -24,8 +24,10 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
     onApply(description);
     setLoading(true);
 
-    const prompt = `Create an animation using anime.js based on the given instruction. Make the result animation on a square page that can fit and center on any pages. You can refer to this code snippet to Use customizable svg paths for object movement. Return response in this format: (Code:  \`\`\`html html code \`\`\`html, \`\`\`js javascript code, leave blank if none \`\`\`js, \`\`\`css css code, leave blank if none \`\`\`css; Explanation: explanations of the code). Instruction: ${description}`;
-
+    const prompt = `Create an animation using anime.js based on the given instruction. Make the result animation on a square page that can fit and center on any pages. Use customizable svg paths for object movement. You can refer to this code snippet to see example methods and code formats but need to create different code:\\
+    Code snippet:\\
+    <!DOCTYPE html>\\<html lang="en">\\  <head>\\    <style>\\      html, body {\\        margin: 0;\\        padding: 0;\\        width: 100%;\\        height: 100%;\\        display: flex;\\        justify-content: center;\\        align-items: center;\\        overflow: hidden;\\      }\\      svg {\\        width: 100vmin;\\        height: 100vmin;\\      }\\    </style>\\  </head>\\  <body>\\    <svg viewBox="0 0 200 200">\\      <path id="path1" d="M10,10 Q90,90 180,10" fill="transparent" stroke="black"/>\\      <path id="path2" d="M10,190 Q90,110 180,190" fill="transparent" stroke="black"/>\\      <circle id="ball1" cx="0" cy="0" r="5" fill="red"/>\\      <circle id="ball2" cx="0" cy="0" r="5" fill="blue"/>\\    </svg>\\    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>\\    <script>\\      anime({\\        targets: \'#ball1\',\\        translateX: anime.path(\'#path1\')(\'x\'),\\        translateY: anime.path(\'#path1\')(\'y\'),\\        easing: \'easeInOutQuad\',\\        duration: 2000,\\        loop: true,\\        direction: \'alternate\'\\      });\\      anime({\\        targets: \'#ball2\',\\        translateX: anime.path(\'#path2\')(\'x\'),\\        translateY: anime.path(\'#path2\')(\'y\'),\\        easing: \'easeInOutQuad\',\\        duration: 2000,\\        loop: true,\\        direction: \'alternate\'\\      });\\    </script>\\  </body>\\</html>\\ 
+    Return response in this format: (Code:  \`\`\`html html code \`\`\`html, \`\`\`js javascript code, leave blank if none \`\`\`js, \`\`\`css css code, leave blank if none \`\`\`css; Explanation: explanations of the code). Instruction: ${description}`;
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -34,7 +36,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-3.5-turbo",
+          model: "gpt-4o",
           messages: [{ role: "system", content: "You are a creative programmer." }, { role: "user", content: prompt }],
         }),
       });
@@ -44,7 +46,9 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
       console.log('sent initial description');
 
       if (content) {
+        console.log('content', content);
         const newCode = parseGPTResponse(content);
+        console.log('new code', newCode);
         onInitialize(newCode);
         await handleSecondGPTCall(newCode, description);
       }
@@ -56,8 +60,10 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   };
 
   const handleSecondGPTCall = async (newCode: { html: string; css: string; js: string }, existingDescription: string) => {
-    const newPrompt = `Based on the following code and description, provide an updated description. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}. The new description should be same old description + added details to specific parts of the old description (for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet') according to the code, and all the added details should be within {}, and put the corresponding entity the details are describing in []. Put each added detail behind the specific words that directly related to the detail. Include nothing but the new description in the response.`;
-
+    const 
+    newPrompt = `Based on the following code and description, provide an updated description. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}. create the updated description by 1): finding important entities in the old description (for example, 'planet', 'shape', 'color', 'move' are all entity) and wrap up them with [] 2): add details for this entity according to the code (for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet') right after the entity.\\
+    New description format:\\
+    xxxxx[entity1]{description1}xxxx[entity2]{description2}... \\ Other than the added details. Important: other than the annotation ([], {}) and added details, the updated description should be exactly same as old description. Include nothing but the new description in the response.`;
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -75,8 +81,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
       const newDescriptionContent = data.choices[0]?.message?.content;
       console.log('second call data', newDescriptionContent);
       if (newDescriptionContent) {
-        setDescription(newDescriptionContent);
-        onApply(newDescriptionContent);
+        setDescription(newDescriptionContent.replace('] {', ']{'));
+        onApply(newDescriptionContent.replace('] {', ']{'));
       }
     } catch (error) {
       console.error("Error processing second request:", error);
@@ -176,11 +182,6 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
 
   return (
     <div className="description-editor">
-      <textarea
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        placeholder="Enter description here"
-      />
       <ContentEditable
         value={description}
         onChange={handleTextChange}
@@ -189,6 +190,11 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
         onTabPress={handleTabPress} // Pass the new handler for Tab key
         hiddenInfo={hiddenInfo} // Pass hiddenInfo to ContentEditable
         setHiddenInfo={setHiddenInfo} // Pass setHiddenInfo function to ContentEditable
+      />
+      <textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="Enter description here"
       />
       <div className="button-group">
         <button className="purple-button" onClick={handleInitialize}>Initialize Description</button>

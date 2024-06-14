@@ -11,10 +11,12 @@ const API_KEY = '';
 
 const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitialize }) => {
   const [description, setDescription] = useState('');
+  const [savedDescription, setSavedDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
   const [latestText, setLatestText] = useState(description); // Initialize with description
   const [hiddenInfo, setHiddenInfo] = useState<string[]>([]); // State to store details in {}
+  const [latestCode, setLatestCode] = useState({ html: '', css: '', js: '' }); // Initialize with description
 
   useEffect(() => {
     setLatestText(description); // Update latestText when description changes
@@ -36,7 +38,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o",
+          model: "gpt-4",
           messages: [{ role: "system", content: "You are a creative programmer." }, { role: "user", content: prompt }],
         }),
       });
@@ -49,6 +51,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
         console.log('content', content);
         const newCode = parseGPTResponse(content);
         console.log('new code', newCode);
+        setLatestCode(newCode);
+        console.log('current code saved')
         onInitialize(newCode);
         await handleSecondGPTCall(newCode, description);
       }
@@ -60,8 +64,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   };
 
   const handleSecondGPTCall = async (newCode: { html: string; css: string; js: string }, existingDescription: string) => {
-    const 
-    newPrompt = `Based on the following code and description, provide an updated description. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}. create the updated description by 1): finding important entities in the old description (for example, 'planet', 'shape', 'color', 'move' are all entity) and wrap up them with [] 2): add details for this entity according to the code (for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet') right after the entity.\\
+    const newPrompt = `Based on the following code and description, provide an updated description. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}. create the updated description by 1): finding important entities in the old description (for example, 'planet', 'shape', 'color', 'move' are all entity) and wrap up them with [] 2): add details for this entity according to the code (for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet') right after the entity.\\
     New description format:\\
     xxxxx[entity1]{description1}xxxx[entity2]{description2}... \\ Other than the added details. Important: other than the annotation ([], {}) and added details, the updated description should be exactly same as old description. Include nothing but the new description in the response.`;
     try {
@@ -81,11 +84,50 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
       const newDescriptionContent = data.choices[0]?.message?.content;
       console.log('second call data', newDescriptionContent);
       if (newDescriptionContent) {
-        setDescription(newDescriptionContent.replace('] {', ']{'));
-        onApply(newDescriptionContent.replace('] {', ']{'));
+        const updatedDescription = newDescriptionContent.replace('] {', ']{');
+        setDescription(updatedDescription);
+        setSavedDescription(updatedDescription); // Save the description
+        onApply(updatedDescription);
       }
     } catch (error) {
       console.error("Error processing second request:", error);
+    }
+  };
+
+  const updateDescriptionGPTCall = async () => {
+    setLoading(true);
+    const prompt = `Based on the following old code and its old description and an updated description, provide an updated code. \\
+    Old code: HTML: \`\`\`html${latestCode.html}\`\`\` CSS: \`\`\`css${latestCode.css}\`\`\` JS: \`\`\`js${latestCode.js}\`\`\` \\
+    Old Description: ${savedDescription}. \\
+    New description: ${description}. \\
+    Include updated code and the explanation of what changed in the updated description, and why your change in the code can match this description change.\\
+    Return response in this format: (Code:  \`\`\`html html code \`\`\`html, \`\`\`js javascript code, leave blank if none \`\`\`js, \`\`\`css css code, leave blank if none \`\`\`css; Explanation: explanation content)`;
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [{ role: "system", content: "You are a creative programmer." }, { role: "user", content: prompt }],
+        }),
+      });
+      console.log('sent update description call');
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+      console.log('update description call data', content);
+      if (content) {
+        const newCode = parseGPTResponse(content);
+        setLatestCode(newCode);
+        console.log('current code saved')
+        onInitialize(newCode);
+      }
+    } catch (error) {
+      console.error("Error processing update description request:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -103,9 +145,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
 
   const toggleDetails = (word: string) => {
     setShowDetails(prev => ({ ...prev, [word]: !prev[word] }));
-    console.log('toggleDetails', latestText)
+    console.log('toggleDetails', latestText);
     setDescription(latestText.replace('] {', ']{')); // Set description to the latest text when right-click is called
-    //.replace('] {', ']{') is to detect bugs
   };
 
   const handleTextChange = (html: string) => {
@@ -136,7 +177,6 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
 
     console.log('handleTextChange', text);
     setLatestText(text.replace('] {', ']{')); // Save the newest text
-    //.replace('] {', ']{') is to detect bugs
   };
 
   const handleTabPress = (value: string) => {
@@ -166,19 +206,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
       .trim(); // Trim any leading or trailing whitespace
 
     console.log('handleTabPress', text);
-    setDescription(text);
+    setDescription(text.replace('] {', ']{'));
   };
-
-  // const restoreDetails = (text: string): string => {
-  //   const parts = text.split(/(\[.*?\])/g);
-  //   let hiddenInfoIndex = 0;
-  //   return parts.map(part => {
-  //     if (part.startsWith('[') && part.endsWith(']') && !part.includes('{')) {
-  //       return `${part} {${hiddenInfo[hiddenInfoIndex++]}}`;
-  //     }
-  //     return part;
-  //   }).join('');
-  // };
 
   return (
     <div className="description-editor">
@@ -198,7 +227,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
       />
       <div className="button-group">
         <button className="purple-button" onClick={handleInitialize}>Initialize Description</button>
-        <button className="purple-button" onClick={() => onApply(description)}>Update Description</button>
+        <button className="purple-button" onClick={updateDescriptionGPTCall}>Update Description</button>
         <button className="blue-button" onClick={() => onApply(description)}>Adjust Description</button>
       </div>
       {loading && (

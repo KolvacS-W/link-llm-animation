@@ -81,14 +81,17 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
 
   const restoreDetails = (text: string): string => {
     const parts = text.split(/(\[.*?\])/g);
+    console.log('parts', parts)
     let hiddenInfoIndex = 0;
     return parts.map((part, index) => {
       if (part.startsWith('[') && part.endsWith(']')) {
         const nextPart = parts[index + 1] || '';
         const hasDetail = /\{.*?\}/.test(nextPart);
+        console.log('restore detail', hasDetail, hiddenInfoIndex, hiddenInfo[hiddenInfoIndex])
         if (!hasDetail && hiddenInfoIndex < hiddenInfo.length) {
-          return `${part}{${hiddenInfo[hiddenInfoIndex++]}}`;
+          return `${part}{${hiddenInfo[hiddenInfoIndex]}}`;
         }
+        hiddenInfoIndex+=1;
       }
       return part;
     }).join('');

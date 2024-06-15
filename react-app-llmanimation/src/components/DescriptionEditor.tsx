@@ -38,7 +38,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4",
+          model: "gpt-4o",
           messages: [{ role: "system", content: "You are a creative programmer." }, { role: "user", content: prompt }],
         }),
       });
@@ -64,9 +64,25 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
   };
 
   const handleSecondGPTCall = async (newCode: { html: string; css: string; js: string }, existingDescription: string) => {
-    const newPrompt = `Based on the following code and description, provide an updated description. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}. create the updated description by 1): finding important entities in the old description (for example, 'planet', 'shape', 'color', 'move' are all entity) and wrap up them with [] 2): add details for this entity according to the code (for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet') right after the entity.\\
+    const newPrompt = `Based on the following code and description, provide an updated description. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}. create the updated description by 1): finding important entities in the old description (for example, 'planet', 'shape', 'color', 'move' are all entity) and inserting [] around them 2): insert a detail wrapped in {} behind each entity according to the code (for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet').\\
     New description format:\\
-    xxxxx[entity1]{description1}xxxx[entity2]{description2}... \\ Other than the added details. Important: other than the annotation ([], {}) and added details, the updated description should be exactly same as old description. Include nothing but the new description in the response.`;
+    xxxxx[entity1]{detail for entity1}xxxx[entity2]{detail for entity2}... \\ 
+    Important: The entities must be within the old description already instead of being newly created. Find as much entities in the old description as possible. Each entity and each detail are wrapped in a [] and {} respectively. Other than the two symbols ([], {}) and added details, the updated description should be exactly same as old description. Include nothing but the new description in the response.\\
+    Example old description: Polygons moving and growing
+    Example output updated description:
+    [polygons]{two different polygon elements, polygon1 and polygon2 colored red and blue respectively, each defined by three points to form a triangle shape} [moving]{motion defined along path1-transparent fill and black stroke, and path2 -transparent fill and black stroke} and [growing]{size oscillates between 1 and 2 over a duration of 2000ms with easing}
+`;
+    
+    // const newPrompt = `Based on the following code and description, make updates to the description like this:\\
+    // 1)return a list of important entities in the description. Entities include elements, features, and behaviours. (for example, 'planet', 'shape', 'color', 'move' are all entity)\\
+    // 2)return a list of details so for each entity you find, basing on the code, there is a detail (specific parameters/features in the code that influences this entity) for this entity. (for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet')\\
+    // Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}\\
+    // Return the response in this format:\\
+    // [entity1]{detail for entity1};[entity2]{detail for entity2};....\\
+    // Donnot include any entity that is not in the description text.\\
+    // Donnot include anything other than [entity1]{detail for entity1}; [entity2]{detail for entity2}; ...\\
+    // in response text.`;
+
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -123,11 +139,45 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
         setLatestCode(newCode);
         console.log('current code saved')
         onInitialize(newCode);
+        await GPTCallAfterupdateDescription(newCode, description);
       }
     } catch (error) {
       console.error("Error processing update description request:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const GPTCallAfterupdateDescription = async (newCode: { html: string; css: string; js: string }, existingDescription: string) => {
+    const newPrompt = `Slightly refine the given description for the code, to make it fit the code better. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${description}.\\
+    Notice that the descriptions should always be in this format:xxxxx[entity1]{description1}xxxx[entity2]{description2}... \\
+    The important entities (for example, 'planet', 'shape', 'color', 'move', 'grow' are all entities) are wrapped up with [];\\
+    For each entity, a detail will follow it inside a {} to give more information about the entity.(for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet')\\
+    Include nothing but the new description in the response.`;
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4-turbo",
+          messages: [{ role: "system", content: "You are a creative programmer." }, { role: "user", content: newPrompt }],
+        }),
+      });
+      console.log('sent description update');
+      const data = await response.json();
+      const newDescriptionContent = data.choices[0]?.message?.content;
+      console.log('second call after updated desc', newDescriptionContent);
+      if (newDescriptionContent) {
+        const updatedDescription = newDescriptionContent.replace('] {', ']{');
+        setDescription(updatedDescription);
+        setSavedDescription(updatedDescription); // Save the description
+        onApply(updatedDescription);
+      }
+    } catch (error) {
+      console.error("Error processing second request:", error);
     }
   };
 

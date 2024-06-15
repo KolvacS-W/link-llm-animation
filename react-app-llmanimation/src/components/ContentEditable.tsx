@@ -14,6 +14,7 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
   const [initialValue, setInitialValue] = useState<string>(value);
 
   useEffect(() => {
+    console.log('contenteditable-useeffect')
     setInitialValue(formatDescription(value));
   }, [value, showDetails]);
 

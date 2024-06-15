@@ -13,7 +13,7 @@ interface CodeEditorProps {
 
 const API_KEY = '';
 
-const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, description, onUpdateDescription,  latestCode, setLatestCode }) => {
+const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, description, onUpdateDescription, latestCode, setLatestCode }) => {
   const [html, setHtml] = useState(code.html);
   const [css, setCss] = useState(code.css);
   const [js, setJs] = useState(code.js);
@@ -61,7 +61,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
       const newDescriptionContent = data.choices[0]?.message?.content;
       console.log('update code call data', newDescriptionContent);
       if (newDescriptionContent) {
-        onUpdateDescription(newDescriptionContent);
+        console.log('Updating description in CodeEditor:', newDescriptionContent);
+        onUpdateDescription(newDescriptionContent); //update the prop description to App.tsx, so it will cause DescriptionEditor to update its description and re-render
       }
     } catch (error) {
       console.error("Error processing update code request:", error);

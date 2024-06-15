@@ -7,24 +7,24 @@ interface DescriptionEditorProps {
   onInitialize: (code: { html: string; css: string; js: string }) => void;
   latestCode: { html: string; css: string; js: string };
   setLatestCode: (code: { html: string; css: string; js: string }) => void;
+  description: string; // Accept description as a prop, rename to propDescription to distinguish from local state description
 }
 
 const API_KEY = '';
 
-const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitialize,  latestCode, setLatestCode }) => {
-  const [description, setDescription] = useState('');
+const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitialize, latestCode, setLatestCode, description: propDescription }) => {
+  const [description, setDescription] = useState(propDescription);
   const [savedDescription, setSavedDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
-  const [latestText, setLatestText] = useState(description); // Initialize with description
+  const [latestText, setLatestText] = useState(propDescription); // Initialize with propDescription
   const [hiddenInfo, setHiddenInfo] = useState<string[]>([]); // State to store details in {}
 
-
   useEffect(() => {
-    console.log('useeffect')
-    setDescription(description);
-    setLatestText(description); // Update latestText when description changes
-  }, [description]);
+    console.log('DescriptionEditor: propDescription changed:', propDescription);
+    setDescription(propDescription);
+    setLatestText(propDescription); // Update latestText when description changes
+  }, [propDescription]);
 
   const handleInitialize = async () => {
     onApply(description);

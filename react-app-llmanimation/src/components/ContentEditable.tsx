@@ -48,6 +48,7 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
   };
 
   const formatDescription = (desc: string): string => {
+    console.log('format description called')
     const parts = desc.split(/(\[.*?\]\{.*?\})/g);
     const details: string[] = [];
     const formatted = parts.map((part, index) => {

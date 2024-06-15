@@ -5,20 +5,24 @@ import ContentEditable from './ContentEditable';
 interface DescriptionEditorProps {
   onApply: (description: string) => void;
   onInitialize: (code: { html: string; css: string; js: string }) => void;
+  latestCode: { html: string; css: string; js: string };
+  setLatestCode: (code: { html: string; css: string; js: string }) => void;
 }
 
 const API_KEY = '';
 
-const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitialize }) => {
+const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitialize,  latestCode, setLatestCode }) => {
   const [description, setDescription] = useState('');
   const [savedDescription, setSavedDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
   const [latestText, setLatestText] = useState(description); // Initialize with description
   const [hiddenInfo, setHiddenInfo] = useState<string[]>([]); // State to store details in {}
-  const [latestCode, setLatestCode] = useState({ html: '', css: '', js: '' }); // Initialize with description
+
 
   useEffect(() => {
+    console.log('useeffect')
+    setDescription(description);
     setLatestText(description); // Update latestText when description changes
   }, [description]);
 
@@ -152,11 +156,10 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
     const newPrompt = `Slightly refine the given description for the code, to make it fit the code better. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${description}.\\
     New description format:\\
     xxxxx[entity1]{detail for entity1}xxxx[entity2]{detail for entity2}... \\ 
-    Important: The entities must be within the old description already instead of being newly created. Find as much entities in the old description as possible. Each entity and each detail are wrapped in a [] and {} respectively. Other than the two symbols ([], {}) and added details, the updated description should be exactly same as old description. Include nothing but the new description in the response.\\
-    Example old description: Polygons moving and growing
-    Example output updated description:
-    [polygons]{two different polygon elements, polygon1 and polygon2 colored red and blue respectively, each defined by three points to form a triangle shape} [moving]{motion defined along path1-transparent fill and black stroke, and path2 -transparent fill and black stroke} and [growing]{size oscillates between 1 and 2 over a duration of 2000ms with easing}
-    Include nothing but the new description in the response.`;
+    Important: One [] only contain one entity and one {} only contain one detail. Each entity and each detail are wrapped in a [] and {} respectively. Include nothing but the new description in the response.\\
+    Example description:
+    [polygons]{two different polygon elements, polygon1 and polygon2 colored red and blue respectively, each defined by three points to form a triangle shape} [moving]{motion defined along path1-transparent fill and black stroke, and path2 -transparent fill and black stroke} and [growing]{size oscillates between 1 and 2 over a duration of 2000ms with easing}\\
+    Include only the updated description in the response.`;
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",

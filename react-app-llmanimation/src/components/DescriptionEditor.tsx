@@ -150,9 +150,12 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
 
   const GPTCallAfterupdateDescription = async (newCode: { html: string; css: string; js: string }, existingDescription: string) => {
     const newPrompt = `Slightly refine the given description for the code, to make it fit the code better. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${description}.\\
-    Notice that the descriptions should always be in this format:xxxxx[entity1]{description1}xxxx[entity2]{description2}... \\
-    The important entities (for example, 'planet', 'shape', 'color', 'move', 'grow' are all entities) are wrapped up with [];\\
-    For each entity, a detail will follow it inside a {} to give more information about the entity.(for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet')\\
+    New description format:\\
+    xxxxx[entity1]{detail for entity1}xxxx[entity2]{detail for entity2}... \\ 
+    Important: The entities must be within the old description already instead of being newly created. Find as much entities in the old description as possible. Each entity and each detail are wrapped in a [] and {} respectively. Other than the two symbols ([], {}) and added details, the updated description should be exactly same as old description. Include nothing but the new description in the response.\\
+    Example old description: Polygons moving and growing
+    Example output updated description:
+    [polygons]{two different polygon elements, polygon1 and polygon2 colored red and blue respectively, each defined by three points to form a triangle shape} [moving]{motion defined along path1-transparent fill and black stroke, and path2 -transparent fill and black stroke} and [growing]{size oscillates between 1 and 2 over a duration of 2000ms with easing}
     Include nothing but the new description in the response.`;
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {

@@ -62,13 +62,14 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
             <span style="color: red; cursor: pointer;" data-word="${word}">
               [${word}]
             </span>
-            ${isShown ? `<span style="color: orange;">{${detail}}</span>` : ''}
+            ${isShown ? `<span style="color: MediumVioletRed;">{${detail}}</span>` : ''}
           </span>
         `;
       }
       return part;
     }).join('');
     setHiddenInfo(details); // Update hiddenInfo with the extracted details
+    console.log('hidden info updated', hiddenInfo)
     return formatted;
   };
 
@@ -87,11 +88,11 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
       if (part.startsWith('[') && part.endsWith(']')) {
         const nextPart = parts[index + 1] || '';
         const hasDetail = /\{.*?\}/.test(nextPart);
-        console.log('restore detail', hasDetail, hiddenInfoIndex, hiddenInfo[hiddenInfoIndex])
+        console.log('restore detail', part, hasDetail, hiddenInfoIndex, hiddenInfo[hiddenInfoIndex])
         if (!hasDetail && hiddenInfoIndex < hiddenInfo.length) {
-          return `${part}{${hiddenInfo[hiddenInfoIndex]}}`;
+          return `${part}{${hiddenInfo[hiddenInfoIndex++]}}`;
         }
-        hiddenInfoIndex+=1;
+        hiddenInfoIndex++;
       }
       return part;
     }).join('');

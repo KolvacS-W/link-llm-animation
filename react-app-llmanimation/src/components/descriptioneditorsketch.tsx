@@ -6,7 +6,7 @@ interface DescriptionEditorProps {
   onInitialize: (code: { html: string; css: string; js: string }) => void;
 }
 
-const API_KEY = "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";
+const API_KEY = "";
 
 const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitialize }) => {
   const [description, setDescription] = useState('');

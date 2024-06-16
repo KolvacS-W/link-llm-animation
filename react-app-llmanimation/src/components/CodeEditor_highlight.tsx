@@ -33,34 +33,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
 
   const handleApply = () => {
     onApply({ html, css, js });
-    // console.log('handle apply', html);
     processKeywordTree(keywordTree);
-    
   };
-
-  // const findCodeBlock = (code: string, keywords: string[]): { [key: string]: string } => {
-  //   const codeBlocks: { [key: string]: string } = {};
-
-  //   keywords.forEach(keyword => {
-  //     const lines = code.split('\n');
-  //     const keywordIndex = lines.findIndex(line => line.includes(keyword));
-  //     if (keywordIndex === -1) {
-  //       codeBlocks[keyword] = '';
-  //       return;
-  //     }
-
-  //     let start = keywordIndex;
-  //     let end = keywordIndex;
-
-  //     while (start > 0 && !lines[start].includes('{')) start--;
-  //     while (end < lines.length && !lines[end].includes('}')) end++;
-
-  //     codeBlocks[keyword] = lines.slice(start, end + 1).join('\n');
-  //   });
-
-  //   console.log('Keywords and their code search ranges:', codeBlocks);
-  //   return codeBlocks;
-  // };
 
   const processKeywordTree = async (keywordTree: KeywordTree[]) => {
     const gptResults = await ParseCodeGPTCall();
@@ -77,9 +51,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
 
         // Match level 1 keywords
         codePieces.forEach(piece => {
-          console.log('code piece $$$:', piece);
           if (piece.includes(keywordNode.keyword)) {
-            console.log('has', keywordNode.keyword)
             keywordNode.codeBlock += piece;
           }
         });
@@ -87,10 +59,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
         // Match level 2 keywords within each level 1 code block
         sublists.forEach(sublist => {
           sublist.forEach(subpiece => {
-            console.log('sub code piece @@@:', subpiece);
-            tree.keywords.forEach(subKeywordNode => {
+            keywordNode.children.forEach(subKeywordNode => {
               if (subpiece.includes(subKeywordNode.keyword)) {
-                console.log('has', subKeywordNode.keyword)
                 if (!subKeywordNode.codeBlock) subKeywordNode.codeBlock = '';
                 subKeywordNode.codeBlock += subpiece;
               }
@@ -101,8 +71,31 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
     });
 
     console.log('Updated Keyword Tree:', JSON.stringify(keywordTree, null, 2));
+    highlightCodeBlocks(keywordTree);
   };
 
+  const highlightCodeBlocks = (keywordTree: KeywordTree[]) => {
+    const highlightedHtml = addHighlights(html, keywordTree, 'keyword');
+    setHtml(highlightedHtml);
+  };
+
+  const addHighlights = (code: string, keywordTree: KeywordTree[], type: 'keyword' | 'subKeyword'): string => {
+    let highlightedCode = code;
+    keywordTree.forEach(tree => {
+      tree.keywords.forEach(keywordNode => {
+        if (keywordNode.codeBlock) {
+          const cleanCodeBlock = keywordNode.codeBlock.replace(/\$\$\$|@@@/g, '');
+          const highlightColor = type === 'keyword' ? 'yellow' : 'orange';
+          const highlightedBlock = `<span style="background-color: ${highlightColor};">${cleanCodeBlock}</span>`;
+          highlightedCode = highlightedCode.replace(cleanCodeBlock, highlightedBlock);
+        }
+        if (keywordNode.children.length > 0) {
+          highlightedCode = addHighlights(highlightedCode, [{ level: tree.level + 1, keywords: keywordNode.children }], 'subKeyword');
+        }
+      });
+    });
+    return highlightedCode;
+  };
 
   const ParseCodeGPTCall = async (): Promise<string> => {
     setLoading(true);

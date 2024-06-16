@@ -267,15 +267,17 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
 
   return (
     <div className="description-editor">
-      <ContentEditable
-        value={description}
-        onChange={handleTextChange}
-        onRightClick={toggleDetails}
-        showDetails={showDetails}
-        onTabPress={handleTabPress} // Pass the new handler for Tab key
-        hiddenInfo={hiddenInfo} // Pass hiddenInfo to ContentEditable
-        setHiddenInfo={setHiddenInfo} // Pass setHiddenInfo function to ContentEditable
-      />
+      <div className="content-editable-container">
+        <ContentEditable
+          value={description}
+          onChange={handleTextChange}
+          onRightClick={toggleDetails}
+          showDetails={showDetails}
+          onTabPress={handleTabPress} // Pass the new handler for Tab key
+          hiddenInfo={hiddenInfo} // Pass hiddenInfo to ContentEditable
+          setHiddenInfo={setHiddenInfo} // Pass setHiddenInfo function to ContentEditable
+        />
+      </div>
       <textarea
         value={description}
         onChange={(e) => setDescription(e.target.value)}

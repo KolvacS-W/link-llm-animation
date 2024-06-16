@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import CodeEditor from '@uiw/react-textarea-code-editor';
 import ReactLoading from 'react-loading';
 
@@ -19,6 +19,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
   const [js, setJs] = useState(code.js);
   const [activeTab, setActiveTab] = useState('html');
   const [loading, setLoading] = useState(false);
+  const editorRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     setHtml(code.html);
@@ -32,7 +33,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
 
   const handleUpdateCode = async () => {
     setLoading(true);
-    onApply({ html, css, js });//save new updated code
+    onApply({ html, css, js }); // Save new updated code
     const prompt = `Based on the following existing old description describing old code and the updated code, provide an updated description reflecting changes to the code. \\
     Old description: ${description}. \\
     Old code: HTML: \`\`\`html${latestCode.html}\`\`\` CSS: \`\`\`css${latestCode.css}\`\`\` JS: \`\`\`js${latestCode.js}\`\`\` \\
@@ -62,7 +63,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
       console.log('update code call data', newDescriptionContent);
       if (newDescriptionContent) {
         console.log('Updating description in CodeEditor:', newDescriptionContent);
-        onUpdateDescription(newDescriptionContent); //update the prop description to App.tsx, so it will cause DescriptionEditor to update its description and re-render
+        onUpdateDescription(newDescriptionContent); // Update the prop description to App.tsx, so it will cause DescriptionEditor to update its description and re-render
       }
     } catch (error) {
       console.error("Error processing update code request:", error);
@@ -72,60 +73,66 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
   };
 
   const renderActiveTab = () => {
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+      if (editorRef.current) {
+        editorRef.current.scrollTop = e.currentTarget.scrollTop;
+      }
+    };
+
     switch (activeTab) {
       case 'html':
         return (
-          <CodeEditor
-            value={html}
-            language="html"
-            placeholder="Enter HTML here"
-            onChange={(e) => setHtml(e.target.value)}
-            padding={15}
-            style={{
-              fontSize: 12,
-              backgroundColor: '#f5f5f5',
-              fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
-              height: '100%',
-              overflow: 'auto',
-            }}
-            className="code-editor-textarea"
-          />
+          <div style={{ height: '600px', width: '400px', overflow: 'auto' }}>
+            <CodeEditor
+              value={html}
+              language="html"
+              placeholder="Enter HTML here"
+              onChange={(e) => setHtml(e.target.value)}
+              padding={15}
+              ref={editorRef}
+              style={{
+                fontSize: 12,
+                backgroundColor: '#f5f5f5',
+                fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
+              }}
+            />
+          </div>
         );
       case 'css':
         return (
-          <CodeEditor
-            value={css}
-            language="css"
-            placeholder="Enter CSS here"
-            onChange={(e) => setCss(e.target.value)}
-            padding={15}
-            style={{
-              fontSize: 12,
-              backgroundColor: '#f5f5f5',
-              fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
-              height: '100%',
-              overflow: 'auto',
-            }}
-            className="code-editor-textarea"
-          />
+          <div style={{ height: '600px', width: '400px', overflow: 'auto' }}>
+            <CodeEditor
+              value={css}
+              language="css"
+              placeholder="Enter CSS here"
+              onChange={(e) => setCss(e.target.value)}
+              padding={15}
+              ref={editorRef}
+              style={{
+                fontSize: 12,
+                backgroundColor: '#f5f5f5',
+                fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
+              }}
+            />
+          </div>
         );
       case 'js':
         return (
-          <CodeEditor
-            value={js}
-            language="javascript"
-            placeholder="Enter JS here"
-            onChange={(e) => setJs(e.target.value)}
-            padding={15}
-            style={{
-              fontSize: 12,
-              backgroundColor: '#f5f5f5',
-              fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
-              height: '100%',
-              overflow: 'auto',
-            }}
-            className="code-editor-textarea"
-          />
+          <div style={{ height: '600px', width: '400px', overflow: 'auto' }}>
+            <CodeEditor
+              value={js}
+              language="javascript"
+              placeholder="Enter JS here"
+              onChange={(e) => setJs(e.target.value)}
+              padding={15}
+              ref={editorRef}
+              style={{
+                fontSize: 12,
+                backgroundColor: '#f5f5f5',
+                fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
+              }}
+            />
+          </div>
         );
       default:
         return null;
@@ -155,7 +162,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
           JS
         </button>
       </div>
-      <div className="editor-container">
+      <div style={{ height: '100%' }}>
         {renderActiveTab()}
       </div>
       <div className="button-group">

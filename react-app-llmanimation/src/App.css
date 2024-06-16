@@ -14,7 +14,7 @@ html, body, #root {
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  height: 100%;
+  height: 90%;
   width: 100%;
   background-color: #f0f0f0;
 }
@@ -44,35 +44,6 @@ html, body, #root {
   height: 100%;
 }
 
-textarea {
-  flex: 1;
-  width: 100%;
-  margin-bottom: 10px;
-  resize: none;
-  overflow: auto;
-}
-
-button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-button:hover {
-  opacity: 0.8;
-}
-
-.purple-button {
-  background-color: #6a0dad;
-  color: white;
-}
-
-.blue-button {
-  background-color: #007bff;
-  color: white;
-}
-
 iframe {
   width: 100%;
   height: 100%;
@@ -97,21 +68,6 @@ iframe {
 .code-editor .tabs button.active {
   background-color: #007bff;
   color: white;
-}
-
-.code-editor .editor-container {
-  flex: 1;
-  margin-bottom: 10px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  height: 100%;
-}
-
-.code-editor .editor-container .code-editor-textarea {
-  flex: 1;
-  width: 100%;
-  overflow: auto;
 }
 
 .button-group {
@@ -148,25 +104,13 @@ iframe {
   transform-origin: 0 0;
 }
 
-.description-editor {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-
-.draft-editor {
+/* .draft-editor {
   flex: 1;
   overflow: auto;
   border: 1px solid #ccc;
   padding: 10px;
   margin-bottom: 10px;
-}
-
-.button-group {
-  display: flex;
-  justify-content: space-between;
-}
+} */
 
 .purple-button, .blue-button {
   padding: 10px 20px;
@@ -185,14 +129,36 @@ iframe {
   color: white;
 }
 
-.loading-container {
+/* .formatted-description {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+} */
+
+/* .editor-scroll-container {
+  flex: 1;
+  overflow: auto;
+} */
+
+
+.content-editable-container {
+  flex: 1;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 10px;
+  align-items: center; /* Center the content vertically */
+  justify-content: center; /* Center the content horizontally */
+  overflow: auto;
+  padding: 10px;
+  margin-bottom: 10px; /* Adjust margin as needed */
+}
+
+textarea {
+  width: 100%;
+  margin-bottom: 10px;
+  resize: none;
+  overflow: auto;
 }
 
 .formatted-description {
   white-space: pre-wrap;
   word-wrap: break-word;
+  display: inline-block;
 }

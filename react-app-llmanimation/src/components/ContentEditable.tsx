@@ -108,6 +108,7 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
       onContextMenu={handleRightClick}
       className="custom-textarea"
       dangerouslySetInnerHTML={{ __html: initialValue }}
+      style={{ outline: 'none' }} // Remove the blue border outline
     />
   );
 };

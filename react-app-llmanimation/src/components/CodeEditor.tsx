@@ -4,7 +4,6 @@ import ReactLoading from 'react-loading';
 import rehypePrism from 'rehype-prism-plus';
 import rehypeRewrite from 'rehype-rewrite';
 import { KeywordTree, KeywordNode } from '../types';
-// import { highlightCode } from '../utils/highlightCode'; // Import the utility function
 
 interface CodeEditorProps {
   code: { html: string; css: string; js: string };
@@ -24,6 +23,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
   const [js, setJs] = useState(code.js);
   const [activeTab, setActiveTab] = useState('html');
   const [loading, setLoading] = useState(false);
+  const [piecesToHighlightLevel1, setPiecesToHighlightLevel1] = useState<string[]>([]);
+  const [piecesToHighlightLevel2, setPiecesToHighlightLevel2] = useState<string[]>([]);
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -45,25 +46,44 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
     console.log('Code pieces:', codePieces);
     console.log('Sublists:', sublists);
 
+    const level1Pieces: string[] = [];
+    const level2Pieces: string[] = [];
+
+    codePieces.forEach(piece => {
+      if (piece.trim() && !piece.match(/^[\n@$]+$/)) {
+        level1Pieces.push(piece);
+      }
+    });
+
+    sublists.forEach(sublist => {
+      sublist.forEach(subpiece => {
+        if (subpiece.trim() && !subpiece.match(/^[\n@$]+$/)) {
+          level2Pieces.push(subpiece);
+        }
+      });
+    });
+
+    setPiecesToHighlightLevel1(level1Pieces);
+    setPiecesToHighlightLevel2(level2Pieces);
+
+    console.log('codepieces created:', piecesToHighlightLevel1)
+    console.log('codepieces created:', piecesToHighlightLevel2)
+
     keywordTree.forEach(tree => {
       tree.keywords.forEach(keywordNode => {
         console.log(`Level ${tree.level}, Keyword: ${keywordNode.keyword}, Parent: ${keywordNode.parentKeyword}`);
         keywordNode.codeBlock = '';
 
         codePieces.forEach(piece => {
-          console.log('code piece $$$:', piece);
           if (piece.includes(keywordNode.keyword)) {
-            console.log('has', keywordNode.keyword)
             keywordNode.codeBlock += piece;
           }
         });
 
         sublists.forEach(sublist => {
           sublist.forEach(subpiece => {
-            console.log('sub code piece @@@:', subpiece);
             tree.keywords.forEach(subKeywordNode => {
               if (subpiece.includes(subKeywordNode.keyword)) {
-                console.log('has', subKeywordNode.keyword)
                 if (!subKeywordNode.codeBlock) subKeywordNode.codeBlock = '';
                 subKeywordNode.codeBlock += subpiece;
               }
@@ -272,7 +292,6 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
   const getFullText = (node: any) => {
     let text = '';
     const recurse = (child: any) => {
-      // console.log('children', child)
       if (child.type === 'text') {
         text += child.value;
       } else if (child.children) {
@@ -285,9 +304,12 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
 
   const highlightCodeLines = (node: any, level1: string[], level2: string[]) => {
     const nodeText = getFullText(node);
-    console.log('nodetext:', nodeText)
+    console.log('level1', level1)
+    // console.log('nodetext:', nodeText)
     level1.forEach(piece => {
+      console.log('piece;', piece)
       if (nodeText.includes(piece)) {
+        console.log('nodetext:', nodeText, piece)
         if (!node.properties.className) {
           node.properties.className = [];
         }
@@ -310,20 +332,6 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
         editorRef.current.scrollTop = e.currentTarget.scrollTop;
       }
     };
-
-    const piecesToHighlightLevel1 = [
-      '<polygon points="0,200 40,140 80,180 120,120 160,170 200,130 200,200" fill="green" />',
-      // Add more level 1 pieces you want to highlight
-    ];
-
-    const piecesToHighlightLevel2 = [
-      '<path id="birdPath1" d="M30,150 Q70,80 110,10" fill="transparent" stroke="transparent"/>',
-      // Add more level 2 pieces you want to highlight
-    ];
-
-    // const highlightedHtml = highlightCode(html, 'html');
-    // const highlightedCss = highlightCode(css, 'css');
-    // const highlightedJs = highlightCode(js, 'javascript');
 
     switch (activeTab) {
       case 'html':
@@ -361,7 +369,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
         return (
           <div style={{ height: '600px', width: '400px', overflow: 'auto' }}>
             <CodeEditor
-              value={highlightedCss}
+              value={css}
               language="css"
               placeholder="Enter CSS here"
               onChange={(e) => setCss(e.target.value)}
@@ -379,7 +387,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
         return (
           <div style={{ height: '600px', width: '400px', overflow: 'auto' }}>
             <CodeEditor
-              value={highlightedJs}
+              value={js}
               language="javascript"
               placeholder="Enter JS here"
               onChange={(e) => setJs(e.target.value)}

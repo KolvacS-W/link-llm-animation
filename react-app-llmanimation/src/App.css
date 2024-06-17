@@ -162,3 +162,13 @@ textarea {
   word-wrap: break-word;
   display: inline-block;
 }
+
+.highlight-level1 {
+  background-color: pink;
+}
+
+.highlight-level2 {
+  background-color: orange;
+}
+
+

@@ -1,9 +1,10 @@
-// src/components/CodeEditor.tsx
-
 import React, { useState, useEffect, useRef } from 'react';
 import CodeEditor from '@uiw/react-textarea-code-editor';
 import ReactLoading from 'react-loading';
+import rehypePrism from 'rehype-prism-plus';
+import rehypeRewrite from 'rehype-rewrite';
 import { KeywordTree, KeywordNode } from '../types';
+// import { highlightCode } from '../utils/highlightCode'; // Import the utility function
 
 interface CodeEditorProps {
   code: { html: string; css: string; js: string };
@@ -33,34 +34,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
 
   const handleApply = () => {
     onApply({ html, css, js });
-    // console.log('handle apply', html);
     processKeywordTree(keywordTree);
-    
   };
-
-  // const findCodeBlock = (code: string, keywords: string[]): { [key: string]: string } => {
-  //   const codeBlocks: { [key: string]: string } = {};
-
-  //   keywords.forEach(keyword => {
-  //     const lines = code.split('\n');
-  //     const keywordIndex = lines.findIndex(line => line.includes(keyword));
-  //     if (keywordIndex === -1) {
-  //       codeBlocks[keyword] = '';
-  //       return;
-  //     }
-
-  //     let start = keywordIndex;
-  //     let end = keywordIndex;
-
-  //     while (start > 0 && !lines[start].includes('{')) start--;
-  //     while (end < lines.length && !lines[end].includes('}')) end++;
-
-  //     codeBlocks[keyword] = lines.slice(start, end + 1).join('\n');
-  //   });
-
-  //   console.log('Keywords and their code search ranges:', codeBlocks);
-  //   return codeBlocks;
-  // };
 
   const processKeywordTree = async (keywordTree: KeywordTree[]) => {
     const gptResults = await ParseCodeGPTCall();
@@ -75,7 +50,6 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
         console.log(`Level ${tree.level}, Keyword: ${keywordNode.keyword}, Parent: ${keywordNode.parentKeyword}`);
         keywordNode.codeBlock = '';
 
-        // Match level 1 keywords
         codePieces.forEach(piece => {
           console.log('code piece $$$:', piece);
           if (piece.includes(keywordNode.keyword)) {
@@ -84,7 +58,6 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
           }
         });
 
-        // Match level 2 keywords within each level 1 code block
         sublists.forEach(sublist => {
           sublist.forEach(subpiece => {
             console.log('sub code piece @@@:', subpiece);
@@ -102,7 +75,6 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
 
     console.log('Updated Keyword Tree:', JSON.stringify(keywordTree, null, 2));
   };
-
 
   const ParseCodeGPTCall = async (): Promise<string> => {
     setLoading(true);
@@ -297,12 +269,61 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
     }
   };
 
+  const getFullText = (node: any) => {
+    let text = '';
+    const recurse = (child: any) => {
+      // console.log('children', child)
+      if (child.type === 'text') {
+        text += child.value;
+      } else if (child.children) {
+        child.children.forEach(recurse);
+      }
+    };
+    node.children.forEach(recurse);
+    return text.trim();
+  };
+
+  const highlightCodeLines = (node: any, level1: string[], level2: string[]) => {
+    const nodeText = getFullText(node);
+    console.log('nodetext:', nodeText)
+    level1.forEach(piece => {
+      if (nodeText.includes(piece)) {
+        if (!node.properties.className) {
+          node.properties.className = [];
+        }
+        node.properties.className.push('highlight-level1');
+      }
+    });
+    level2.forEach(piece => {
+      if (nodeText.includes(piece)) {
+        if (!node.properties.className) {
+          node.properties.className = [];
+        }
+        node.properties.className.push('highlight-level2');
+      }
+    });
+  };
+
   const renderActiveTab = () => {
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
       if (editorRef.current) {
         editorRef.current.scrollTop = e.currentTarget.scrollTop;
       }
     };
+
+    const piecesToHighlightLevel1 = [
+      '<polygon points="0,200 40,140 80,180 120,120 160,170 200,130 200,200" fill="green" />',
+      // Add more level 1 pieces you want to highlight
+    ];
+
+    const piecesToHighlightLevel2 = [
+      '<path id="birdPath1" d="M30,150 Q70,80 110,10" fill="transparent" stroke="transparent"/>',
+      // Add more level 2 pieces you want to highlight
+    ];
+
+    // const highlightedHtml = highlightCode(html, 'html');
+    // const highlightedCss = highlightCode(css, 'css');
+    // const highlightedJs = highlightCode(js, 'javascript');
 
     switch (activeTab) {
       case 'html':
@@ -315,6 +336,19 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
               onChange={(e) => setHtml(e.target.value)}
               padding={15}
               ref={editorRef}
+              rehypePlugins={[
+                [rehypePrism, { ignoreMissing: true }] as any,
+                [
+                  rehypeRewrite,
+                  {
+                    rewrite: (node, index, parent) => {
+                      if (node.properties?.className?.includes('code-line')) {
+                        highlightCodeLines(node, piecesToHighlightLevel1, piecesToHighlightLevel2);
+                      }
+                    }
+                  }
+                ] as any
+              ]}
               style={{
                 fontSize: 12,
                 backgroundColor: '#f5f5f5',
@@ -327,7 +361,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
         return (
           <div style={{ height: '600px', width: '400px', overflow: 'auto' }}>
             <CodeEditor
-              value={css}
+              value={highlightedCss}
               language="css"
               placeholder="Enter CSS here"
               onChange={(e) => setCss(e.target.value)}
@@ -345,7 +379,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
         return (
           <div style={{ height: '600px', width: '400px', overflow: 'auto' }}>
             <CodeEditor
-              value={js}
+              value={highlightedJs}
               language="javascript"
               placeholder="Enter JS here"
               onChange={(e) => setJs(e.target.value)}

@@ -6,7 +6,7 @@ import './App.css';
 import { KeywordTree } from './types';
 
 const App: React.FC = () => {
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState('Adding sth...');
   const [code, setCode] = useState({
     html: '',
     css: '',

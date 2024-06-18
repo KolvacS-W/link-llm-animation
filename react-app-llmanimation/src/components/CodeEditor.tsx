@@ -45,7 +45,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   }, [code]);
 
   useEffect(() => {
-    console.log('new word selected, useeffect called, updating highlight pieces')
+    console.log('new word selected, useEffect called, updating highlight pieces');
     if (highlightEnabled) {
       updateHighlightPieces();
     }
@@ -74,8 +74,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
 
     setPiecesToHighlightLevel1(level1Pieces);
     setPiecesToHighlightLevel2(level2Pieces);
-    console.log('PiecesToHighlightLevel1 updated', piecesToHighlightLevel1);
-    console.log('PiecesToHighlightLevel2 updated', piecesToHighlightLevel2);
+    console.log('PiecesToHighlightLevel1 updated', level1Pieces);
+    console.log('PiecesToHighlightLevel2 updated', level2Pieces);
   };
 
   const processKeywordTree = async (keywordTree: KeywordTree[]) => {
@@ -310,112 +310,96 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     return text.trim();
   };
 
-  const highlightCodeLines = (node: any, level1: string[], level2: string[]) => {
-    console.log('highlighting code', level1)
-    const nodeText = getFullText(node).trim();
+  const shouldHighlightLine = (nodeText: string, index: number, codeLines: string[]) => {
     const regex = /[^{}()@#\s$]/; // Regex to check for strings other than {},(),@,$,#
-
-    // Function to check if the nodeText contains meaningful content
     const isMeaningfulText = (text: string) => regex.test(text);
 
     if (!isMeaningfulText(nodeText)) {
-      return;
+      return false;
     }
 
-    console.log('level2', level2);
+    if (nodeText.includes(wordselected)) {
+      return true;
+    }
 
-    level1.forEach(piece => {
-      if (piece.includes(nodeText)) {
-        console.log('nodetext:', nodeText, 'piece:', piece);
-        if (!node.properties.className) {
-          node.properties.className = [];
-        }
-        node.properties.className.push('highlight-level1');
+    // Check the previous and next 5 lines
+    for (let i = Math.max(0, index - 5); i < Math.min(codeLines.length, index + 5); i++) {
+      if (codeLines[i].includes(wordselected)) {
+        return true;
       }
-    });
+    }
 
-    level2.forEach(piece => {
-      if (piece.includes(nodeText)) {
-        if (!node.properties.className) {
-          node.properties.className = [];
+    return false;
+  };
+
+  const highlightCodeLines = (node: any, level1: string[], level2: string[], codeLines: string[], index: number) => {
+    const nodeText = getFullText(node).trim();
+
+    if (shouldHighlightLine(nodeText, index, codeLines)) {
+      level1.forEach(piece => {
+        if (piece.includes(nodeText)) {
+          if (!node.properties.className) {
+            node.properties.className = [];
+          }
+          node.properties.className.push('highlight-level1');
         }
-        node.properties.className.push('highlight-level2');
-      }
-    });
+      });
+
+      level2.forEach(piece => {
+        if (piece.includes(nodeText)) {
+          if (!node.properties.className) {
+            node.properties.className = [];
+          }
+          node.properties.className.push('highlight-level2');
+        }
+      });
+    }
+  };
+
+  const renderEditor = (language: string, value: string, setValue: React.Dispatch<React.SetStateAction<string>>) => {
+    const codeLines = value.split('\n');
+    return (
+      <div style={{ height: '600px', width: '400px', overflow: 'auto' }}>
+        <CodeEditor
+          value={value}
+          language={language}
+          placeholder={`Enter ${language.toUpperCase()} here`}
+          onChange={(e) => setValue(e.target.value)}
+          padding={15}
+          ref={editorRef}
+          rehypePlugins={[
+            [rehypePrism, { ignoreMissing: true }] as any,
+            [
+              rehypeRewrite,
+              {
+                rewrite: (node, index, parent) => {
+                  if (node.properties?.className?.includes('code-line')) {
+                    if (highlightEnabled) {
+                      highlightCodeLines(node, piecesToHighlightLevel1, piecesToHighlightLevel2, codeLines, index);
+                    }
+                  }
+                }
+              }
+            ] as any
+          ]}
+          style={{
+            fontSize: 12,
+            backgroundColor: '#f5f5f5',
+            fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
+          }}
+        />
+      </div>
+    );
   };
 
   const renderActiveTab = () => {
-
     switch (activeTab) {
       case 'html':
-        return (
-          <div style={{ height: '600px', width: '400px', overflow: 'auto' }}>
-            <CodeEditor
-              value={html}
-              language="html"
-              placeholder="Enter HTML here"
-              onChange={(e) => setHtml(e.target.value)}
-              padding={15}
-              ref={editorRef}
-              rehypePlugins={[
-                [rehypePrism, { ignoreMissing: true }] as any,
-                [
-                  rehypeRewrite,
-                  {
-                    rewrite: (node, index, parent) => {
-                      if (node.properties?.className?.includes('code-line')) {
-                        if (highlightEnabled) {
-                          highlightCodeLines(node, piecesToHighlightLevel1, piecesToHighlightLevel2);
-                        }
-                      }
-                    }
-                  }
-                ] as any
-              ]}
-              style={{
-                fontSize: 12,
-                backgroundColor: '#f5f5f5',
-                fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
-              }}
-            />
-          </div>
-        );
+        return renderEditor('html', html, setHtml);
       case 'css':
-        return (
-          <div style={{ height: '600px', width: '400px', overflow: 'auto' }}>
-            <CodeEditor
-              value={css}
-              language="css"
-              placeholder="Enter CSS here"
-              onChange={(e) => setCss(e.target.value)}
-              padding={15}
-              ref={editorRef}
-              style={{
-                fontSize: 12,
-                backgroundColor: '#f5f5f5',
-                fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
-              }}
-            />
-          </div>
-        );
+        return renderEditor('css', css, setCss);
       case 'js':
-        return (
-          <div style={{ height: '600px', width: '400px', overflow: 'auto' }}>
-            <CodeEditor
-              value={js}
-              language="javascript"
-              placeholder="Enter JS here"
-              onChange={(e) => setJs(e.target.value)}
-              padding={15}
-              ref={editorRef}
-              style={{
-                fontSize: 12,
-                backgroundColor: '#f5f5f5',
-                fontFamily: 'ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
-              }}
-            />
-          </div>
-        );
+        return renderEditor('javascript', js, setJs);
       default:
         return null;
     }
@@ -448,9 +432,9 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
         {renderActiveTab()}
       </div>
       <div className="button-group">
-        <button className="blue-button" onClick={handleApply}>Run</button>
+        <button className="blue-button" onClick={handleApply}>Parse and Run</button>
         <button className="purple-button" onClick={handleUpdateCode}>Update Code</button>
-        <button className="blue-button" onClick={handleApply}>Adjust Code</button>
+        {/* <button className="blue-button" onClick={handleApply}>Adjust Code</button> */}
         <button 
           className="green-button" 
           onClick={() => setHighlightEnabled(!highlightEnabled)}

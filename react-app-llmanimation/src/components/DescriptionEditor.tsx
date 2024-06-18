@@ -295,7 +295,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
       <div className="button-group">
         <button className="purple-button" onClick={handleInitialize}>Initialize Description</button>
         <button className="purple-button" onClick={updateDescriptionGPTCall}>Update Description</button>
-        <button className="blue-button" onClick={() => onApply(description)}>Adjust Description</button>
+        {/* <button className="blue-button" onClick={() => onApply(description)}>Adjust Description</button> */}
       </div>
       {loading && (
         <div className="loading-container">

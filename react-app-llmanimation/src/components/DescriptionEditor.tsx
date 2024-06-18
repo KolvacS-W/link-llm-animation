@@ -263,6 +263,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
 
     console.log('handleTabPress', text);
     setDescription(text.replace('] {', ']{'));
+    onApply(text.replace('] {', ']{'));
   };
 
   return (

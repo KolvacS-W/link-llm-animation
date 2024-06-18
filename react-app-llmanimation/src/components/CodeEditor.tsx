@@ -52,9 +52,10 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     processKeywordTree(keywordTree);
   };
 
+  //finding out what codepiece to highlight by selected word
   const updateHighlightPieces = () => {
-    console.log('Updated Keyword Tree:', keywordTree);
-    console.log('updating pieces', wordselected)
+    // console.log('Updated Keyword Tree:', keywordTree);
+    // console.log('updating pieces', wordselected)
     const level1Pieces: string[] = [];
     const level2Pieces: string[] = [];
 
@@ -74,13 +75,15 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     console.log('PiecesToHighlightLevel2 updated', piecesToHighlightLevel2)
   };
 
+  // add codeblocks to keyword tree
   const processKeywordTree = async (keywordTree: KeywordTree[]) => {
+    console.log('processing keyword tree')
     const gptResults = await ParseCodeGPTCall();
     const codePieces = gptResults.split('$$$');
     const sublists = codePieces.map(piece => piece.split('@@@'));
 
-    console.log('Code pieces:', codePieces);
-    console.log('Sublists:', sublists);
+    // console.log('Code pieces:', codePieces);
+    // console.log('Sublists:', sublists);
 
     const level1Pieces: string[] = [];
     const level2Pieces: string[] = [];
@@ -255,7 +258,10 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     </script>
     $$$
     ...
-    Donnot add anything to the code other than $$$ and @@@. Include only the segmented code in response.
+    Donnot add anything to the code other than $$$ and @@@. \\
+    There should be at least 4 level1 blocks and 8 level2 blocks.\\
+    make sure to include the whole code segmented instead of part of it.\\
+    Include only the segmented code in response.\\
     Code to segment: ${html}
     `    
     console.log('prompt:', prompt);

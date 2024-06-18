@@ -45,6 +45,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   }, [code]);
 
   useEffect(() => {
+    console.log('new word selected, useeffect called, updating highlight pieces')
     if (highlightEnabled) {
       updateHighlightPieces();
     }
@@ -138,9 +139,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   const ParseCodeGPTCall = async (): Promise<string> => {
     setLoading(true);
     const prompt = `Segment the following animation code into different blocks in two levels according to its functionalities.\\
-    Use $$$ to segment level 1 blocks, and @@@ to segment level 2 blocks within each level 1 block.\\
-    level 1 block should be a snippet that concerns one object or behaviour, level 2 block should be a snippet that serve 1 specific function.\\
-    Return only parsed code blocks in this format:
+    Use $$$ to segment level 1 blocks, and @@@ to further segment level 2 blocks within each level 1 block.\\
+    Return full parsed code blocks in this format:
     $$$
     ...
     @@@
@@ -152,79 +152,48 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     $$$
     ...
     $$$
-    Example code:\\
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <style>
-          html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-          }
-          svg {
-            width: 100vmin;
-            height: 100vmin;
-          }
-          body {
-            background-color: skyblue; /* Added blue sky background */
-          }
-        </style>
-      </head>
-      <body>
-        <svg viewBox="0 0 200 200">
-          <!-- Forest (complex polygon area) -->
-          <polygon points="0,200 40,140 80,180 120,120 160,170 200,130 200,200" fill="green" />
-          
-          <!-- Paths representing birds' flight -->
-          <path id="birdPath1" d="M30,150 Q70,80 110,10" fill="transparent" stroke="transparent"/>
-          <path id="birdPath2" d="M60,150 Q100,90 140,20" fill="transparent" stroke="transparent"/>
-          
-          <!-- Bird-like shapes representing birds -->
-          <polygon id="bird1" points="25,150 35,150 30,145" fill="brown"/>
-          <polygon id="bird2" points="55,150 65,150 60,145" fill="brown"/>
-        </svg>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-        <script>
-          // Animate the first bird
-          anime({
-            targets: '#bird1',
-            translateX: anime.path('#birdPath1')('x'),
-            translateY: anime.path('#birdPath1')('y'),
-            easing: 'easeInOutSine',
-            duration: 3000,
-            loop: true,
-            direction: 'alternate'
-          });
-          
-          // Animate the second bird
-          anime({
-            targets: '#bird2',
-            translateX: anime.path('#birdPath2')('x'),
-            translateY: anime.path('#birdPath2')('y'),
-            easing: 'easeInOutSine',
-            duration: 3500,
-            loop: true,
-            direction: 'alternate'
-          });
-        </script>
-      </body>
-    </html>
+    Example input code:\\          
+      <!-- Bird-like shapes representing birds -->
+      <polygon id="bird1" points="25,150 35,150 30,145" fill="brown"/>
+      <polygon id="bird2" points="55,150 65,150 60,145" fill="brown"/>
+    </svg>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script>
+      // Animate the first bird
+      anime({
+        targets: '#bird1',
+        translateX: anime.path('#birdPath1')('x'),
+        translateY: anime.path('#birdPath1')('y'),
+        easing: 'easeInOutSine',
+        duration: 3000,
+        loop: true,
+        direction: 'alternate'
+      });
+      
+      // Animate the second bird
+      anime({
+        targets: '#bird2',
+        translateX: anime.path('#birdPath2')('x'),
+        translateY: anime.path('#birdPath2')('y'),
+        easing: 'easeInOutSine',
+        duration: 3500,
+        loop: true,
+        direction: 'alternate'
+      });
+    </script>
+
     Example segmented result:
-    ...
     $$$
     @@@
     <!-- Bird-like shapes representing birds -->
       <polygon id="bird1" points="25,150 35,150 30,145" fill="brown"/>
+    @@@
       <polygon id="bird2" points="55,150 65,150 60,145" fill="brown"/>
     @@@
+    $$$
     </svg>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    $$$
     <script>
     @@@
       // Animate the first bird
@@ -250,9 +219,10 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       });
     @@@
     </script>
-    $$$
-    ...
-    Donnot add anything to the code other than $$$ and @@@. Include only the segmented code in response.
+    $$$ 
+    There must be at least 4 level1 blocks and 8 level2 blocks in the segmented code response;
+    Segmented code should include all the code in the input.
+    Include only the segmented code in response.
     Code to segment: ${html}
     `    
     console.log('prompt:', prompt);
@@ -375,11 +345,6 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   const renderActiveTab = () => {
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-      if (editorRef.current) {
-        editorRef.current.scrollTop = e.currentTarget.scrollTop;
-      }
-    };
 
     switch (activeTab) {
       case 'html':

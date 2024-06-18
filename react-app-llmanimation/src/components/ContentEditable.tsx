@@ -8,9 +8,10 @@ interface ContentEditableProps {
   onTabPress: (value: string) => void; // New prop for handling 'Tab' key press
   hiddenInfo: string[]; // Prop to receive hiddenInfo
   setHiddenInfo: (info: string[]) => void; // New prop to set hiddenInfo
+  onDoubleClick: (word: string) => void; // Add this prop
 }
 
-const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRightClick, showDetails, onTabPress, hiddenInfo, setHiddenInfo }) => {
+const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRightClick, showDetails, onTabPress, hiddenInfo, setHiddenInfo, onDoubleClick }) => {
   const [initialValue, setInitialValue] = useState<string>(value);
 
   useEffect(() => {
@@ -45,6 +46,18 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
     const word = target.getAttribute("data-word");
     if (word) {
       onRightClick(word);
+    }
+  };
+
+  const handleDoubleClick = (event: React.MouseEvent) => {
+    // console.log('double clicked')
+    const selection = window.getSelection();
+    if (selection) {
+      const word = selection.toString().trim();
+      if (word) {
+        // console.log('word doubleclicked:', word)
+        onDoubleClick(word); // Notify the double-clicked word
+      }
     }
   };
 
@@ -106,6 +119,7 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
       onInput={handleInput}
       onKeyDown={handleKeyDown} // Add keydown event listener
       onContextMenu={handleRightClick}
+      onDoubleClick={handleDoubleClick}
       className="custom-textarea"
       dangerouslySetInnerHTML={{ __html: initialValue }}
       style={{ outline: 'none' }} // Remove the blue border outline

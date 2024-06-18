@@ -8,17 +8,19 @@ interface DescriptionEditorProps {
   latestCode: { html: string; css: string; js: string };
   setLatestCode: (code: { html: string; css: string; js: string }) => void;
   description: string; // Accept description as a prop, rename to propDescription to distinguish from local state description
+  onWordSelected: (word: string) => void; // Add this prop
 }
 
 const API_KEY = '';
 
-const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitialize, latestCode, setLatestCode, description: propDescription }) => {
+const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitialize, latestCode, setLatestCode, description: propDescription, onWordSelected }) => {
   const [description, setDescription] = useState(propDescription);
   const [savedDescription, setSavedDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
   const [latestText, setLatestText] = useState(propDescription); // Initialize with propDescription
   const [hiddenInfo, setHiddenInfo] = useState<string[]>([]); // State to store details in {}
+  
 
   useEffect(() => {
     console.log('DescriptionEditor: propDescription changed:', propDescription);
@@ -266,6 +268,11 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
     onApply(text.replace('] {', ']{'));
   };
 
+  const handleDoubleClick = (word: string) => {
+    onWordSelected(word); // Notify the double-clicked word
+    console.log('double clicked, selecting word:', word);
+  };
+
   return (
     <div className="description-editor">
       <div className="content-editable-container">
@@ -277,6 +284,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ onApply, onInitia
           onTabPress={handleTabPress} // Pass the new handler for Tab key
           hiddenInfo={hiddenInfo} // Pass hiddenInfo to ContentEditable
           setHiddenInfo={setHiddenInfo} // Pass setHiddenInfo function to ContentEditable
+          onDoubleClick={handleDoubleClick}
         />
       </div>
       <textarea

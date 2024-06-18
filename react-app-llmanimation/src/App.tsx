@@ -1,4 +1,3 @@
-// src/App.tsx
 import React, { useState } from 'react';
 import DescriptionEditor from './components/DescriptionEditor';
 import CustomCodeEditor from './components/CodeEditor';
@@ -30,26 +29,26 @@ const App: React.FC = () => {
     const regex = /\[(.*?)\]\{(.*?)\}/g;
     const level1Keywords = new Set<string>();
     const allSubKeywords = new Set<string>();
-
+  
     let match;
     while ((match = regex.exec(description)) !== null) {
       const keyword = match[1].trim();
       const details = match[2].trim();
       level1Keywords.add(keyword);
-
+  
       const subKeywords = details
-        .split(' ')
+        .split(/[\s,()]+/) // Split by spaces, commas, and parentheses
         .map(word => word.trim())
-        .filter(word => !stopwords.has(word));
-
+        .filter(word => word && !stopwords.has(word));
+  
       subKeywords.forEach(subKeyword => allSubKeywords.add(subKeyword));
     }
-
+  
     const newKeywordTree: KeywordTree[] = [
       { level: 1, keywords: [] },
       { level: 2, keywords: [] },
     ];
-
+  
     level1Keywords.forEach(keyword => {
       newKeywordTree[0].keywords.push({ 
         keyword, 
@@ -59,11 +58,11 @@ const App: React.FC = () => {
         parentKeyword: null 
       });
     });
-
+  
     const uniqueSubKeywords = Array.from(allSubKeywords).filter(
       subKeyword => !level1Keywords.has(subKeyword)
     );
-
+  
     uniqueSubKeywords.forEach(subKeyword => {
       newKeywordTree[1].keywords.push({ 
         keyword: subKeyword, 
@@ -73,9 +72,10 @@ const App: React.FC = () => {
         parentKeyword: null 
       });
     });
-
+  
     return newKeywordTree;
   };
+  
 
   
 
@@ -99,6 +99,10 @@ const App: React.FC = () => {
     console.log('keyword tree updated by description', keywordTree)
   };
 
+  const handleWordSelected = (word: string) => {
+    console.log('App: word selected:', word);
+    setWordSelected(word);
+  };
 
   return (
     <div className="App">
@@ -109,6 +113,7 @@ const App: React.FC = () => {
           latestCode={latestCode}
           setLatestCode={setLatestCode}
           description={description}
+          onWordSelected={handleWordSelected} // Pass the handler to DescriptionEditor
         />
         <CustomCodeEditor 
           code={code} 

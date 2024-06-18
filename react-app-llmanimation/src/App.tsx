@@ -48,6 +48,8 @@ const App: React.FC = () => {
     }
   ];
 
+  const [wordselected, setWordSelected] = useState('path'); // Add state for the selected keyword
+
   return (
     <div className="App">
       <div className="editor-section">
@@ -66,6 +68,7 @@ const App: React.FC = () => {
           latestCode={latestCode}
           setLatestCode={setLatestCode}
           keywordTree={keywordTree}
+          wordselected={wordselected} // Pass wordselected as a prop
         />
         <ResultViewer code={code} />
       </div>

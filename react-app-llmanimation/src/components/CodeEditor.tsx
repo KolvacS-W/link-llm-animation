@@ -12,12 +12,22 @@ interface CodeEditorProps {
   onUpdateDescription: (newDescription: string) => void;
   latestCode: { html: string; css: string; js: string };
   setLatestCode: (code: { html: string; css: string; js: string }) => void;
-  keywordTree: KeywordTree[]; // Add keywordTree to props
+  keywordTree: KeywordTree[];
+  wordselected: string; // Add wordselected to props
 }
 
 const API_KEY = '';
 
-const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, description, onUpdateDescription, latestCode, setLatestCode, keywordTree }) => {
+const CustomCodeEditor: React.FC<CodeEditorProps> = ({
+  code,
+  onApply,
+  description,
+  onUpdateDescription,
+  latestCode,
+  setLatestCode,
+  keywordTree,
+  wordselected,
+}) => {
   const [html, setHtml] = useState(code.html);
   const [css, setCss] = useState(code.css);
   const [js, setJs] = useState(code.js);
@@ -33,9 +43,35 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
     setJs(code.js);
   }, [code]);
 
+  useEffect(() => {
+    updateHighlightPieces();
+  }, [keywordTree, wordselected]);
+
   const handleApply = () => {
     onApply({ html, css, js });
     processKeywordTree(keywordTree);
+  };
+
+  const updateHighlightPieces = () => {
+    console.log('Updated Keyword Tree:', keywordTree);
+    console.log('updating pieces', wordselected)
+    const level1Pieces: string[] = [];
+    const level2Pieces: string[] = [];
+
+    keywordTree.forEach(tree => {
+      tree.keywords.forEach(keywordNode => {
+        if (tree.level === 1 && keywordNode.keyword === wordselected) {
+          level1Pieces.push(keywordNode.codeBlock);
+        } else if (tree.level === 2 && keywordNode.keyword === wordselected) {
+          level2Pieces.push(keywordNode.codeBlock);
+        }
+      });
+    });
+
+    setPiecesToHighlightLevel1(level1Pieces);
+    setPiecesToHighlightLevel2(level2Pieces);
+    console.log('PiecesToHighlightLevel1 updated', piecesToHighlightLevel1)
+    console.log('PiecesToHighlightLevel2 updated', piecesToHighlightLevel2)
   };
 
   const processKeywordTree = async (keywordTree: KeywordTree[]) => {
@@ -50,7 +86,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
     const level2Pieces: string[] = [];
 
     codePieces.forEach(piece => {
-      console.log('trimed piece', piece.trim)
+      console.log('trimmed piece', piece.trim());
       if (piece.trim() && !piece.match(/^[\n@$]+$/)) {
         level1Pieces.push(piece);
       }
@@ -64,43 +100,42 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
       });
     });
 
-
     keywordTree.forEach(tree => {
       tree.keywords.forEach(keywordNode => {
         console.log(`Level ${tree.level}, Keyword: ${keywordNode.keyword}, Parent: ${keywordNode.parentKeyword}`);
         keywordNode.codeBlock = '';
 
-          if (tree.level == 1){
-            codePieces.forEach(piece => {
-              if (piece.includes(keywordNode.keyword)) {
-                keywordNode.codeBlock += piece;
+        if (tree.level === 1) {
+          codePieces.forEach(piece => {
+            if (piece.includes(keywordNode.keyword)) {
+              keywordNode.codeBlock += piece;
+              console.log('level1 node added codeblock', keywordNode.keyword, piece);
+            }
+          });
+        }
+
+        if (tree.level === 2) {
+          console.log('node for level2', keywordNode.keyword);
+          sublists.forEach(sublist => {
+            sublist.forEach(subpiece => {
+              console.log('level2 subpiece', subpiece);
+              if (subpiece.includes(keywordNode.keyword)) {
+                keywordNode.codeBlock += subpiece;
+                console.log('level2 node added codeblock', keywordNode.keyword, subpiece);
               }
             });
-          }
-
-          if (tree.level == 2){
-            console.log('node for level2', keywordNode.keyword)
-            sublists.forEach(sublist => {
-              sublist.forEach(subpiece => {
-                console.log('level2 subpiece', subpiece, )
-                if (subpiece.includes(keywordNode.keyword)) {
-                  keywordNode.codeBlock += subpiece;
-                  console.log('level2 node added codeblock', keywordNode.keyword, subpiece)
-                }
-              })
-            });
-          }
-        });
+          });
+        }
       });
+    });
+    updateHighlightPieces();
+    // setPiecesToHighlightLevel1(level1Pieces);
+    // setPiecesToHighlightLevel2(level2Pieces);
 
-      setPiecesToHighlightLevel1(level1Pieces);
-      setPiecesToHighlightLevel2(level2Pieces);
-  
-      console.log('codepieces created:', level1Pieces)
-      console.log('codepieces created:', level2Pieces)
+    // console.log('codepieces created:', level1Pieces);
+    // console.log('codepieces created:', level2Pieces);
 
-
-    console.log('Updated Keyword Tree:', JSON.stringify(keywordTree, null, 2));
+    // console.log('Updated Keyword Tree:', JSON.stringify(keywordTree, null, 2));
   };
 
   const ParseCodeGPTCall = async (): Promise<string> => {
@@ -310,18 +345,19 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
   };
 
   const highlightCodeLines = (node: any, level1: string[], level2: string[]) => {
+    console.log('highlighting code', level1)
     const nodeText = getFullText(node).trim();
     const regex = /[^{}()@#\s$]/; // Regex to check for strings other than {},(),@,$,#
-  
+
     // Function to check if the nodeText contains meaningful content
     const isMeaningfulText = (text: string) => regex.test(text);
-  
+
     if (!isMeaningfulText(nodeText)) {
       return;
     }
-  
+
     console.log('level2', level2);
-  
+
     level1.forEach(piece => {
       if (piece.includes(nodeText)) {
         console.log('nodetext:', nodeText, 'piece:', piece);
@@ -331,7 +367,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
         node.properties.className.push('highlight-level1');
       }
     });
-  
+
     level2.forEach(piece => {
       if (piece.includes(nodeText)) {
         if (!node.properties.className) {
@@ -341,7 +377,6 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
       }
     });
   };
-  
 
   const renderActiveTab = () => {
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {

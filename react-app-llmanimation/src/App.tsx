@@ -94,6 +94,9 @@ const App: React.FC = () => {
   const handleUpdateDescription = (newDescription: string) => {
     console.log('App: updating description:', newDescription);
     setDescription(newDescription);
+    const newKeywordTree = extractKeywords(newDescription);
+    setKeywordTree(newKeywordTree);
+    console.log('keyword tree updated by description', keywordTree)
   };
 
 

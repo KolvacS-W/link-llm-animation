@@ -35,6 +35,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   const [loading, setLoading] = useState(false);
   const [piecesToHighlightLevel1, setPiecesToHighlightLevel1] = useState<string[]>([]);
   const [piecesToHighlightLevel2, setPiecesToHighlightLevel2] = useState<string[]>([]);
+  const [highlightEnabled, setHighlightEnabled] = useState(true); // Add state for highlight toggle
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -44,18 +45,19 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   }, [code]);
 
   useEffect(() => {
-    updateHighlightPieces();
-  }, [keywordTree, wordselected]);
+    if (highlightEnabled) {
+      updateHighlightPieces();
+    }
+  }, [keywordTree, wordselected, highlightEnabled]);
 
   const handleApply = () => {
     onApply({ html, css, js });
     processKeywordTree(keywordTree);
   };
 
-  //finding out what codepiece to highlight by selected word
   const updateHighlightPieces = () => {
-    // console.log('Updated Keyword Tree:', keywordTree);
-    // console.log('updating pieces', wordselected)
+    console.log('Updated Keyword Tree:', keywordTree);
+    console.log('updating pieces', wordselected);
     const level1Pieces: string[] = [];
     const level2Pieces: string[] = [];
 
@@ -71,19 +73,17 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
 
     setPiecesToHighlightLevel1(level1Pieces);
     setPiecesToHighlightLevel2(level2Pieces);
-    console.log('PiecesToHighlightLevel1 updated', piecesToHighlightLevel1)
-    console.log('PiecesToHighlightLevel2 updated', piecesToHighlightLevel2)
+    console.log('PiecesToHighlightLevel1 updated', piecesToHighlightLevel1);
+    console.log('PiecesToHighlightLevel2 updated', piecesToHighlightLevel2);
   };
 
-  // add codeblocks to keyword tree
   const processKeywordTree = async (keywordTree: KeywordTree[]) => {
-    console.log('processing keyword tree')
     const gptResults = await ParseCodeGPTCall();
     const codePieces = gptResults.split('$$$');
     const sublists = codePieces.map(piece => piece.split('@@@'));
 
-    // console.log('Code pieces:', codePieces);
-    // console.log('Sublists:', sublists);
+    console.log('Code pieces:', codePieces);
+    console.log('Sublists:', sublists);
 
     const level1Pieces: string[] = [];
     const level2Pieces: string[] = [];
@@ -131,14 +131,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
         }
       });
     });
+
     updateHighlightPieces();
-    // setPiecesToHighlightLevel1(level1Pieces);
-    // setPiecesToHighlightLevel2(level2Pieces);
-
-    // console.log('codepieces created:', level1Pieces);
-    // console.log('codepieces created:', level2Pieces);
-
-    // console.log('Updated Keyword Tree:', JSON.stringify(keywordTree, null, 2));
   };
 
   const ParseCodeGPTCall = async (): Promise<string> => {
@@ -258,10 +252,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     </script>
     $$$
     ...
-    Donnot add anything to the code other than $$$ and @@@. \\
-    There should be at least 4 level1 blocks and 8 level2 blocks.\\
-    make sure to include the whole code segmented instead of part of it.\\
-    Include only the segmented code in response.\\
+    Donnot add anything to the code other than $$$ and @@@. Include only the segmented code in response.
     Code to segment: ${html}
     `    
     console.log('prompt:', prompt);
@@ -297,8 +288,6 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     setLoading(true);
     onApply({ html, css, js }); // Save new updated code
 
-    processKeywordTree(keywordTree);
-
     const prompt = `Based on the following existing old description describing old code and the updated code, provide an updated description reflecting changes to the code. \\
     Old description: ${description}. \\
     Old code: HTML: \`\`\`html${latestCode.html}\`\`\` CSS: \`\`\`css${latestCode.css}\`\`\` JS: \`\`\`js${latestCode.js}\`\`\` \\
@@ -329,6 +318,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       if (newDescriptionContent) {
         console.log('Updating description in CodeEditor:', newDescriptionContent);
         onUpdateDescription(newDescriptionContent); // Update the prop description to App.tsx, so it will cause DescriptionEditor to update its description and re-render
+        processKeywordTree(keywordTree);
       }
     } catch (error) {
       console.error("Error processing update code request:", error);
@@ -409,7 +399,9 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
                   {
                     rewrite: (node, index, parent) => {
                       if (node.properties?.className?.includes('code-line')) {
-                        highlightCodeLines(node, piecesToHighlightLevel1, piecesToHighlightLevel2);
+                        if (highlightEnabled) {
+                          highlightCodeLines(node, piecesToHighlightLevel1, piecesToHighlightLevel2);
+                        }
                       }
                     }
                   }
@@ -494,6 +486,12 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
         <button className="blue-button" onClick={handleApply}>Run</button>
         <button className="purple-button" onClick={handleUpdateCode}>Update Code</button>
         <button className="blue-button" onClick={handleApply}>Adjust Code</button>
+        <button 
+          className="green-button" 
+          onClick={() => setHighlightEnabled(!highlightEnabled)}
+        >
+          {highlightEnabled ? 'Disable Highlight' : 'Enable Highlight'}
+        </button>
       </div>
     </div>
   );

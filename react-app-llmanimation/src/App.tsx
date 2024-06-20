@@ -5,6 +5,14 @@ import ResultViewer from './components/ResultViewer';
 import './App.css';
 import { KeywordTree } from './types';
 
+interface Version {
+  description: string;
+  code: { html: string; css: string; js: string };
+  latestCode: { html: string; css: string; js: string };
+  keywordTree: KeywordTree[];
+  wordselected: string;
+}
+
 const App: React.FC = () => {
   const [description, setDescription] = useState('Adding sth...');
   const [code, setCode] = useState({
@@ -17,7 +25,9 @@ const App: React.FC = () => {
     { level: 1, keywords: [] },
     { level: 2, keywords: [] },
   ]);
-  const [wordselected, setWordSelected] = useState('ocean'); // Add state for the selected keyword
+  const [wordselected, setWordSelected] = useState('ocean');
+  const [versions, setVersions] = useState<Version[]>([]);
+  const [currentVersionIndex, setCurrentVersionIndex] = useState<number | null>(null);
 
   const stopwords = new Set([
     'a', 'an', 'and', 'are', 'as', 'at', 'be', 'but', 'by', 'for', 'if', 'in', 'into', 'is', 'it', 
@@ -37,7 +47,7 @@ const App: React.FC = () => {
       level1Keywords.add(keyword);
   
       const subKeywords = details
-        .split(/[\s,()]+/) // Split by spaces, commas, and parentheses
+        .split(/[\s,()]+/)
         .map(word => word.trim())
         .filter(word => word && !stopwords.has(word));
   
@@ -76,9 +86,6 @@ const App: React.FC = () => {
     return newKeywordTree;
   };
   
-
-  
-
   const handleDescriptionApply = (newDescription: string) => {
     console.log('App: new description applied:', newDescription);
     setDescription(newDescription);
@@ -104,6 +111,54 @@ const App: React.FC = () => {
     setWordSelected(word);
   };
 
+  const saveCurrentVersion = () => {
+    const currentVersion: Version = {
+      description,
+      code,
+      latestCode,
+      keywordTree,
+      wordselected,
+    };
+
+    setVersions((prevVersions) => {
+      if (currentVersionIndex !== null) {
+        const updatedVersions = [...prevVersions];
+        updatedVersions[currentVersionIndex] = currentVersion;
+        return updatedVersions;
+      } else {
+        return [...prevVersions, currentVersion];
+      }
+    });
+  };
+
+  const createNewVersion = () => {
+    setCurrentVersionIndex(null);
+    setDescription('');
+    setCode({ html: '', css: '', js: '' });
+    setLatestCode({ html: '', css: '', js: '' });
+    setKeywordTree([
+      { level: 1, keywords: [] },
+      { level: 2, keywords: [] },
+    ]);
+    setWordSelected('');
+  };
+
+  const switchToVersion = (index: number) => {
+    const selectedVersion = versions[index];
+    setCurrentVersionIndex(index);
+    setDescription(selectedVersion.description);
+    setCode(selectedVersion.code);
+    setLatestCode(selectedVersion.latestCode);
+    setKeywordTree(selectedVersion.keywordTree);
+    setWordSelected(selectedVersion.wordselected);
+  };
+
+  const deleteVersion = (index: number) => {
+    setVersions((prevVersions) => prevVersions.filter((_, i) => i !== index));
+    setCurrentVersionIndex(null);
+    createNewVersion(); // Start a new version after deletion
+  };
+
   return (
     <div className="App">
       <div className="editor-section">
@@ -113,7 +168,7 @@ const App: React.FC = () => {
           latestCode={latestCode}
           setLatestCode={setLatestCode}
           description={description}
-          onWordSelected={handleWordSelected} // Pass the handler to DescriptionEditor
+          onWordSelected={handleWordSelected}
         />
         <CustomCodeEditor 
           code={code} 
@@ -123,9 +178,27 @@ const App: React.FC = () => {
           latestCode={latestCode}
           setLatestCode={setLatestCode}
           keywordTree={keywordTree}
-          wordselected={wordselected} // Pass wordselected as a prop
+          wordselected={wordselected}
         />
         <ResultViewer code={code} />
+      </div>
+      <div className="version-controls">
+        <button className="purple-button" onClick={saveCurrentVersion}>Save Version</button>
+        <button className="green-button" onClick={createNewVersion}>New Version</button>
+        {currentVersionIndex !== null && (
+          <button className="red-button" onClick={() => deleteVersion(currentVersionIndex)}>Delete Current Version</button>
+        )}
+        <div className="version-buttons">
+          {versions.map((_, index) => (
+            <button
+              key={index}
+              className={`version-button ${currentVersionIndex === index ? 'selected' : ''}`}
+              onClick={() => switchToVersion(index)}
+            >
+              Version {index + 1}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

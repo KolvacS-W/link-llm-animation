@@ -171,4 +171,33 @@ textarea {
   background-color: rgb(230, 186, 153);
 }
 
+.version-controls {
+  margin-top: 20px;
+}
+
+.version-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.version-button {
+  padding: 5px 10px;
+  cursor: pointer;
+  background-color: lightgray;
+  border: 1px solid darkgray;
+}
+
+.version-button.selected {
+  background-color: cornflowerblue;
+  color: white;
+}
+
+.red-button {
+  background-color: red;
+  color: white;
+}
+
+
+
 

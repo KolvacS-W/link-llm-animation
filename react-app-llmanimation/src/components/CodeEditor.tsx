@@ -259,6 +259,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   const handleUpdateCode = async () => {
+    onApply({ html, css, js }); // Save new updated code
+
     setVersions(prevVersions => {
       const updatedVersions = [...prevVersions];
       if (currentVersionIndex !== null) {
@@ -266,6 +268,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       }
       return updatedVersions;
     });
+
+    console.log('check versions in handleUpdateCode', versions);
 
     const prompt = `Based on the following existing old description describing old code and the updated code, provide an updated description reflecting changes to the code. \\
     Old description: ${description}. \\
@@ -285,6 +289,11 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
           "Authorization": `Bearer ${API_KEY}`,
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          model: "gpt-4-turbo",
+          messages: [{ role: "system", content: "You are a creative programmer." }, { role: "user", content: prompt }],
+        }),
+        
       });
 
       const data = await response.json();

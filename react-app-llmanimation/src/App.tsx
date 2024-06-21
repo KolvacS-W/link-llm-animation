@@ -89,46 +89,54 @@ const App: React.FC = () => {
 
   const handleDescriptionApply = (newDescription: string) => {
     if (currentVersionIndex === null) return;
-    const updatedVersions = [...versions];
-    updatedVersions[currentVersionIndex] = {
-      ...updatedVersions[currentVersionIndex],
-      description: newDescription,
-      keywordTree: extractKeywords(newDescription),
-    };
-    setVersions(updatedVersions);
+    setVersions((prevVersions) => {
+      const updatedVersions = [...prevVersions];
+      updatedVersions[currentVersionIndex] = {
+        ...updatedVersions[currentVersionIndex],
+        description: newDescription,
+        keywordTree: extractKeywords(newDescription),
+      };
+      return updatedVersions;
+    });
   };
 
   const handleCodeInitialize = (newCode: { html: string; css: string; js: string }) => {
+    console.log('check code in handleCodeInitialize', newCode.html)
     if (currentVersionIndex === null) return;
-    const updatedVersions = [...versions];
-    updatedVersions[currentVersionIndex] = {
-      ...updatedVersions[currentVersionIndex],
-      code: newCode,
-    };
-    setVersions(updatedVersions);
+    setVersions((prevVersions) => {
+      const updatedVersions = [...prevVersions];
+      updatedVersions[currentVersionIndex] = {
+        ...updatedVersions[currentVersionIndex],
+        code: newCode,
+      };
+      return updatedVersions;
+    });
   };
 
   const handleUpdateDescription = (newDescription: string) => {
     if (currentVersionIndex === null) return;
-    const updatedVersions = [...versions];
-    updatedVersions[currentVersionIndex] = {
-      ...updatedVersions[currentVersionIndex],
-      description: newDescription,
-      keywordTree: extractKeywords(newDescription),
-    };
-    setVersions(updatedVersions);
+    setVersions((prevVersions) => {
+      const updatedVersions = [...prevVersions];
+      updatedVersions[currentVersionIndex] = {
+        ...updatedVersions[currentVersionIndex],
+        description: newDescription,
+        keywordTree: extractKeywords(newDescription),
+      };
+      return updatedVersions;
+    });
   };
 
   const handleWordSelected = (word: string) => {
     if (currentVersionIndex === null) return;
-    const updatedVersions = [...versions];
-    updatedVersions[currentVersionIndex] = {
-      ...updatedVersions[currentVersionIndex],
-      wordselected: word,
-    };
-    setVersions(updatedVersions);
+    setVersions((prevVersions) => {
+      const updatedVersions = [...prevVersions];
+      updatedVersions[currentVersionIndex] = {
+        ...updatedVersions[currentVersionIndex],
+        wordselected: word,
+      };
+      return updatedVersions;
+    });
   };
-
   const saveCurrentVersion = () => {
     if (versions[currentVersionIndex].id != '') {
       console.log('update and save version', versions[currentVersionIndex]);

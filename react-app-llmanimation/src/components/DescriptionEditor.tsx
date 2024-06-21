@@ -73,6 +73,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
         const newCode = parseGPTResponse(content);
         setLatestCode(newCode);
         onInitialize(newCode);
+        console.log('check code after gpt response', newCode)
         await handleSecondGPTCall(newCode, description);
       }
     } catch (error) {

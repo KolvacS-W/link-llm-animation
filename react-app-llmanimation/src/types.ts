@@ -12,4 +12,18 @@ export interface KeywordNode {
     level: number;
     keywords: KeywordNode[];
   }
+
+  export interface Version {
+    id: string; // Change id to string to store custom names
+    description: string;
+    code: { html: string; css: string; js: string };
+    latestCode: { html: string; css: string; js: string };
+    keywordTree: KeywordTree[];
+    wordselected: string;
+    highlightEnabled: boolean; // Add highlightEnabled
+    loading: boolean; // Add loading
+    piecesToHighlightLevel1: string[]; // Add piecesToHighlightLevel1
+    piecesToHighlightLevel2: string[]; // Add piecesToHighlightLevel2
+  }
+  
   

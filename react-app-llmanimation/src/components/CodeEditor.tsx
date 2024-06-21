@@ -3,7 +3,7 @@ import CodeEditor from '@uiw/react-textarea-code-editor';
 import ReactLoading from 'react-loading';
 import rehypePrism from 'rehype-prism-plus';
 import rehypeRewrite from 'rehype-rewrite';
-import { KeywordTree, KeywordNode } from '../types';
+import { Version, KeywordTree, KeywordNode } from '../types';
 
 interface CodeEditorProps {
   code: { html: string; css: string; js: string };
@@ -13,7 +13,10 @@ interface CodeEditorProps {
   latestCode: { html: string; css: string; js: string };
   setLatestCode: (code: { html: string; css: string; js: string }) => void;
   keywordTree: KeywordTree[];
-  wordselected: string; // Add wordselected to props
+  wordselected: string;
+  currentVersionIndex: number | null;
+  setVersions: React.Dispatch<React.SetStateAction<Version[]>>;
+  versions: Version[]; // Add versions to the props
 }
 
 const API_KEY = '';
@@ -27,16 +30,21 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   setLatestCode,
   keywordTree,
   wordselected,
+  currentVersionIndex,
+  setVersions,
+  versions // Receive versions as a prop
 }) => {
   const [html, setHtml] = useState(code.html);
   const [css, setCss] = useState(code.css);
   const [js, setJs] = useState(code.js);
   const [activeTab, setActiveTab] = useState('html');
-  const [loading, setLoading] = useState(false);
   const [piecesToHighlightLevel1, setPiecesToHighlightLevel1] = useState<string[]>([]);
   const [piecesToHighlightLevel2, setPiecesToHighlightLevel2] = useState<string[]>([]);
-  const [highlightEnabled, setHighlightEnabled] = useState(true); // Add state for highlight toggle
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const version = currentVersionIndex !== null ? versions[currentVersionIndex] : null;
+  const loading = version ? version.loading : false;
+  const highlightEnabled = version ? version.highlightEnabled : true;
 
   useEffect(() => {
     setHtml(code.html);
@@ -45,7 +53,6 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   }, [code]);
 
   useEffect(() => {
-    console.log('new word selected, useEffect called, updating highlight pieces');
     if (highlightEnabled) {
       updateHighlightPieces();
     }
@@ -57,13 +64,11 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   const updateHighlightPieces = () => {
-    console.log('Updated Keyword Tree:', keywordTree);
-    console.log('updating pieces', wordselected);
     const level1Pieces: string[] = [];
     const level2Pieces: string[] = [];
 
-    keywordTree.forEach(tree => {
-      tree.keywords.forEach(keywordNode => {
+    keywordTree.forEach((tree: KeywordTree) => {
+      tree.keywords.forEach((keywordNode: KeywordNode) => {
         if (tree.level === 1 && keywordNode.keyword === wordselected) {
           level1Pieces.push(keywordNode.codeBlock);
         } else if (tree.level === 2 && keywordNode.keyword === wordselected) {
@@ -74,8 +79,6 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
 
     setPiecesToHighlightLevel1(level1Pieces);
     setPiecesToHighlightLevel2(level2Pieces);
-    console.log('PiecesToHighlightLevel1 updated', level1Pieces);
-    console.log('PiecesToHighlightLevel2 updated', level2Pieces);
   };
 
   const processKeywordTree = async (keywordTree: KeywordTree[]) => {
@@ -83,14 +86,10 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     const codePieces = gptResults.split('$$$');
     const sublists = codePieces.map(piece => piece.split('@@@'));
 
-    console.log('Code pieces:', codePieces);
-    console.log('Sublists:', sublists);
-
     const level1Pieces: string[] = [];
     const level2Pieces: string[] = [];
 
     codePieces.forEach(piece => {
-      console.log('trimmed piece', piece.trim());
       if (piece.trim() && !piece.match(/^[\n@$]+$/)) {
         level1Pieces.push(piece);
       }
@@ -104,28 +103,23 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       });
     });
 
-    keywordTree.forEach(tree => {
-      tree.keywords.forEach(keywordNode => {
-        console.log(`Level ${tree.level}, Keyword: ${keywordNode.keyword}, Parent: ${keywordNode.parentKeyword}`);
+    keywordTree.forEach((tree: KeywordTree) => {
+      tree.keywords.forEach((keywordNode: KeywordNode) => {
         keywordNode.codeBlock = '';
 
         if (tree.level === 1) {
           codePieces.forEach(piece => {
             if (piece.includes(keywordNode.keyword)) {
               keywordNode.codeBlock += piece;
-              console.log('level1 node added codeblock', keywordNode.keyword, piece);
             }
           });
         }
 
         if (tree.level === 2) {
-          console.log('node for level2', keywordNode.keyword);
           sublists.forEach(sublist => {
             sublist.forEach(subpiece => {
-              console.log('level2 subpiece', subpiece);
               if (subpiece.includes(keywordNode.keyword)) {
                 keywordNode.codeBlock += subpiece;
-                console.log('level2 node added codeblock', keywordNode.keyword, subpiece);
               }
             });
           });
@@ -137,7 +131,14 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   const ParseCodeGPTCall = async (): Promise<string> => {
-    setLoading(true);
+    setVersions(prevVersions => {
+      const updatedVersions = [...prevVersions];
+      if (currentVersionIndex !== null) {
+        updatedVersions[currentVersionIndex].loading = true;
+      }
+      return updatedVersions;
+    });
+
     const prompt = `Segment the following animation code into different blocks in two levels according to its functionalities.\\
     Use $$$ to segment level 1 blocks, and @@@ to further segment level 2 blocks within each level 1 block.\\
     Return full parsed code blocks in this format:
@@ -224,8 +225,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     Segmented code should include all the code in the input.
     Include only the segmented code in response.
     Code to segment: ${html}
-    `    
-    console.log('prompt:', prompt);
+    `;
 
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -240,23 +240,32 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
         }),
       });
 
-      console.log('sent GPT call');
       const data = await response.json();
       const gptResponse = data.choices[0]?.message?.content;
-      console.log('GPT response:', gptResponse);
 
       return gptResponse;
     } catch (error) {
       console.error("Error processing GPT request:", error);
       return '';
     } finally {
-      setLoading(false);
+      setVersions(prevVersions => {
+        const updatedVersions = [...prevVersions];
+        if (currentVersionIndex !== null) {
+          updatedVersions[currentVersionIndex].loading = false;
+        }
+        return updatedVersions;
+      });
     }
   };
 
   const handleUpdateCode = async () => {
-    setLoading(true);
-    onApply({ html, css, js }); // Save new updated code
+    setVersions(prevVersions => {
+      const updatedVersions = [...prevVersions];
+      if (currentVersionIndex !== null) {
+        updatedVersions[currentVersionIndex].loading = true;
+      }
+      return updatedVersions;
+    });
 
     const prompt = `Based on the following existing old description describing old code and the updated code, provide an updated description reflecting changes to the code. \\
     Old description: ${description}. \\
@@ -268,7 +277,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     Example description:
     [polygons]{two different polygon elements, polygon1 and polygon2 colored red and blue respectively, each defined by three points to form a triangle shape} [moving]{motion defined along path1-transparent fill and black stroke, and path2 -transparent fill and black stroke} and [growing]{size oscillates between 1 and 2 over a duration of 2000ms with easing}\\
     Include only the updated description in the response.`;
-    console.log('prompt:', prompt);
+
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -276,24 +285,25 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
           "Authorization": `Bearer ${API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model: "gpt-4-turbo",
-          messages: [{ role: "system", content: "You are a creative programmer." }, { role: "user", content: prompt }],
-        }),
       });
-      console.log('sent update code call');
+
       const data = await response.json();
       const newDescriptionContent = data.choices[0]?.message?.content;
-      console.log('update code call data', newDescriptionContent);
+
       if (newDescriptionContent) {
-        console.log('Updating description in CodeEditor:', newDescriptionContent);
-        onUpdateDescription(newDescriptionContent); // Update the prop description to App.tsx, so it will cause DescriptionEditor to update its description and re-render
+        onUpdateDescription(newDescriptionContent);
         processKeywordTree(keywordTree);
       }
     } catch (error) {
       console.error("Error processing update code request:", error);
     } finally {
-      setLoading(false);
+      setVersions(prevVersions => {
+        const updatedVersions = [...prevVersions];
+        if (currentVersionIndex !== null) {
+          updatedVersions[currentVersionIndex].loading = false;
+        }
+        return updatedVersions;
+      });
     }
   };
 
@@ -311,7 +321,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   const shouldHighlightLine = (nodeText: string, index: number, codeLines: string[]) => {
-    const regex = /[^{}()@#\s$]/; // Regex to check for strings other than {},(),@,$,#
+    const regex = /[^{}()@#\s$]/; 
     const isMeaningfulText = (text: string) => regex.test(text);
 
     if (!isMeaningfulText(nodeText)) {
@@ -322,7 +332,6 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       return true;
     }
 
-    // Check the previous and next 5 lines
     for (let i = Math.max(0, index - 5); i < Math.min(codeLines.length, index + 5); i++) {
       if (codeLines[i].includes(wordselected)) {
         return true;
@@ -434,10 +443,15 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       <div className="button-group">
         <button className="blue-button" onClick={handleApply}>Parse and Run</button>
         <button className="purple-button" onClick={handleUpdateCode}>Update Code</button>
-        {/* <button className="blue-button" onClick={handleApply}>Adjust Code</button> */}
         <button 
           className="green-button" 
-          onClick={() => setHighlightEnabled(!highlightEnabled)}
+          onClick={() => setVersions(prevVersions => {
+            const updatedVersions = [...prevVersions];
+            if (currentVersionIndex !== null) {
+              updatedVersions[currentVersionIndex].highlightEnabled = !highlightEnabled;
+            }
+            return updatedVersions;
+          })}
         >
           {highlightEnabled ? 'Disable Highlight' : 'Enable Highlight'}
         </button>

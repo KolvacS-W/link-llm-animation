@@ -6,6 +6,7 @@ import './App.css';
 import { KeywordTree } from './types';
 
 interface Version {
+  id: string; // Change id to string to store custom names
   description: string;
   code: { html: string; css: string; js: string };
   latestCode: { html: string; css: string; js: string };
@@ -112,7 +113,11 @@ const App: React.FC = () => {
   };
 
   const saveCurrentVersion = () => {
+    const versionName = prompt("Enter version name:");
+    if (!versionName) return; // If no name is provided, do not save the version
+
     const currentVersion: Version = {
+      id: versionName,
       description,
       code,
       latestCode,
@@ -120,15 +125,7 @@ const App: React.FC = () => {
       wordselected,
     };
 
-    setVersions((prevVersions) => {
-      if (currentVersionIndex !== null) {
-        const updatedVersions = [...prevVersions];
-        updatedVersions[currentVersionIndex] = currentVersion;
-        return updatedVersions;
-      } else {
-        return [...prevVersions, currentVersion];
-      }
-    });
+    setVersions((prevVersions) => [...prevVersions, currentVersion]);
   };
 
   const createNewVersion = () => {
@@ -153,8 +150,8 @@ const App: React.FC = () => {
     setWordSelected(selectedVersion.wordselected);
   };
 
-  const deleteVersion = (index: number) => {
-    setVersions((prevVersions) => prevVersions.filter((_, i) => i !== index));
+  const deleteVersion = (id: string) => {
+    setVersions((prevVersions) => prevVersions.filter(version => version.id !== id));
     setCurrentVersionIndex(null);
     createNewVersion(); // Start a new version after deletion
   };
@@ -183,19 +180,19 @@ const App: React.FC = () => {
         <ResultViewer code={code} />
       </div>
       <div className="version-controls">
-        <button className="purple-button" onClick={saveCurrentVersion}>Save Version</button>
-        <button className="green-button" onClick={createNewVersion}>New Version</button>
+        <button className="purple-button" onClick={saveCurrentVersion}>Save</button>
+        <button className="green-button" onClick={createNewVersion}>New</button>
         {currentVersionIndex !== null && (
-          <button className="red-button" onClick={() => deleteVersion(currentVersionIndex)}>Delete Current Version</button>
+          <button className="red-button" onClick={() => deleteVersion(versions[currentVersionIndex].id)}>Delete</button>
         )}
         <div className="version-buttons">
-          {versions.map((_, index) => (
+          {versions.map((version, index) => (
             <button
-              key={index}
+              key={version.id}
               className={`version-button ${currentVersionIndex === index ? 'selected' : ''}`}
               onClick={() => switchToVersion(index)}
             >
-              Version {index + 1}
+              {version.id}
             </button>
           ))}
         </div>

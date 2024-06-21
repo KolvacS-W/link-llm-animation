@@ -173,16 +173,25 @@ textarea {
 
 .version-controls {
   margin-top: 20px;
+  margin-right: 20px;
+  display: flex;
+  flex-direction: column; /* Stack children vertically */
+  gap: 10px; /* Space between buttons */
 }
 
 .version-buttons {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 5px;
   margin-top: 10px;
 }
 
 .version-button {
-  padding: 5px 10px;
+  padding: 3px 4px; /* Reduced padding */
+  max-width: 150px; /* Set a maximum width */
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
   cursor: pointer;
   background-color: lightgray;
   border: 1px solid darkgray;
@@ -193,8 +202,10 @@ textarea {
   color: white;
 }
 
+
+
 .red-button {
-  background-color: red;
+  background-color: rgb(232, 138, 138);
   color: white;
 }
 

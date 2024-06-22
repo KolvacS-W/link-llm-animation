@@ -83,7 +83,7 @@ const App: React.FC = () => {
         parentKeyword: null
       });
     });
-
+    console.log('keyword tree updated', currentVersionIndex, newKeywordTree)
     return newKeywordTree;
   };
 

@@ -242,7 +242,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
 
       const data = await response.json();
       const gptResponse = data.choices[0]?.message?.content;
-
+      console.log('code parse results', gptResponse);
       return gptResponse;
     } catch (error) {
       console.error("Error processing GPT request:", error);
@@ -279,7 +279,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     xxxxx[entity1]{detail for entity1}xxxx[entity2]{detail for entity2}... \\ 
     Important: One [] only contain one entity and one {} only contain one detail. Each entity and each detail are wrapped in a [] and {} respectively. Include nothing but the new description in the response.\\
     Example description:
-    [polygons]{two different polygon elements, polygon1 and polygon2 colored red and blue respectively, each defined by three points to form a triangle shape} [moving]{motion defined along path1-transparent fill and black stroke, and path2 -transparent fill and black stroke} and [growing]{size oscillates between 1 and 2 over a duration of 2000ms with easing}\\
+    [fishes]{#fish1 and #fish2, orange-colored, marine creatures depicted using polygonal SVG elements} shaped as [complex polygons]{polygonal shapes simulating the bodily form of fish with points configured in specific coordinates} are [swimming]{both #fish1 and #fish2 are animated to dynamically move along their designated paths:#path1 and #path2, predefined SVG paths depicted as smooth wavy lines} across an [ocean]{visualized by a large rectangular area filled with a vertical blue gradient, representing water}\\
+    Just as the old description, make sure it is made of coherent sentences with words other than entities and details.\\
     Include only the updated description in the response.`;
 
     try {

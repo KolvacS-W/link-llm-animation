@@ -31,17 +31,16 @@ const ResultViewer: React.FC<ResultViewerProps> = ({ code }) => {
                   align-items: center;
                   overflow: hidden;
                 }
-                // body > * {
-                //   max-width: 100%;
-                //   max-height: 100%;
-                //   object-fit: contain;
-                // }
                 ${code.css}
               </style>
             </head>
             <body>
               ${code.html}
-              <script>${code.js}</script>
+              <script>
+                (function() {
+                  ${code.js}
+                })();
+              </script>
             </body>
           </html>
         `);

@@ -1,0 +1,132 @@
+a classic [mountain] {depicted by a polygon element with points "50,150 100,50 150,150", fill color #4d4d4d} [cabin] {represented by a rectangle element with x="80", y="100", width="40", height="30", fill color "brown"} with a [stone chimney] {depicted by a rectangle element with x="110", y="70", width="10", height="20", fill color "gray"} and [red wooden doors] {represented by a rectangle with x="95", y="110", width="10", height="20", fill color "red"} on a [forested hill] {implied context, not directly visualized but suggested by mountain and cabin layout} , under a [night sky] {background color #1E1E1E} with thick, fluffy [snowflakes] {two circles, each with r="1.5", fill color "white", animated on paths defined by "M30,0 Q60,100 30,200" for snowflake1 and "M170,0 Q140,100 170,200" for snowflake2, animation durations 5000ms and 7000ms respectively} slowly [falling] {animation of translateY from 0 to 100vh over keyframes defined in CSS} .
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        background: #1E1E1E;
+      }
+      svg {
+        width: 100vmin;
+        height: 100vmin;
+      }
+      @keyframes fall {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(100vh); }
+      }
+    </style>
+  </head>
+  <body>
+    <svg viewBox="0 0 200 200">
+      <!-- Mountain -->
+      <polygon points="50,150 100,50 150,150" fill="#4d4d4d" />
+      <!-- Cabin -->
+      <rect x="80" y="100" width="40" height="30" fill="brown" />
+      <!-- Roof -->
+      <polygon points="70,100 100,80 130,100" fill="#8B4513" />
+      <!-- Chimney -->
+      <rect x="110" y="70" width="10" height="20" fill="gray" />
+      <!-- Door -->
+      <rect x="95" y="110" width="10" height="20" fill="red" />
+      <!-- Snowflakes Path 1 -->
+      <path id="snowPath1" d="M30,0 Q60,100 30,200" />
+      <!-- Snowflakes Path 2 -->
+      <path id="snowPath2" d="M170,0 Q140,100 170,200" />
+      <!-- Snowflakes -->
+      <circle id="snowflake1" cx="0" cy="0" r="1.5" fill="white" />
+      <circle id="snowflake2" cx="0" cy="0" r="1.5" fill="white" />
+    </svg>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script>
+      anime({
+        targets: '#snowflake1',
+        translateX: anime.path('#snowPath1')('x'),
+        translateY: anime.path('#snowPath1')('y'),
+        easing: 'linear',
+        duration: 5000,
+        loop: true,
+      });
+      anime({
+        targets: '#snowflake2',
+        translateX: anime.path('#snowPath2')('x'),
+        translateY: anime.path('#snowPath2')('y'),
+        easing: 'linear',
+        duration: 7000,
+        loop: true,
+      });
+    </script>
+  </body>
+</html>
+
+%%%
+An [oak tree] {SVG element with trunk and expansive, symmetric branches} has a [broad trunk] {rectangle at x="90" y="100", width="20", height="60", fill="#8B4513"} and many [expansive branches] {four paths representing the branches, two curving upward and two curving downward, styled with stroke="#8B4513", stroke-width="5", and fill="transparent"} . It features [denser leaves] that [change] {color transition from light green (#9ACD32) to dark green (#006400) using easing function easeInOutQuad over 2000ms} from [light green] {initial color of circles} to [dark green] {color at the end of the animation} . This tree is set under a [sunny sky] {linear-gradient background representing the sky, transitioning from light blue at the top to green at the bottom, with a glowing sun icon positioned in the upper right} . The scene is animated so that these leaves [grow gradually] {animation effects causing circles to increase in size and change color} in a [lush forest] {represented by the darker green portion of the gradient in the background, suggesting thick foliage} .
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background: linear-gradient(#87CEFA, #228B22);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #sun {
+            position: absolute;
+            top: 50px;
+            right: 50px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: #FFD700;
+            box-shadow: 0 0 50px #FFD700;
+        }
+    </style>
+</head>
+<body>
+    <div id="sun"></div>
+    <svg width="200" height="200">
+        <rect x="90" y="100" width="20" height="60" fill="#8B4513"></rect>
+        <path d="M90 100 C70 80, 50 70, 30 80" stroke="#8B4513" stroke-width="5" fill="transparent"></path>
+        <path d="M110 100 C130 80, 150 70, 170 80" stroke="#8B4513" stroke-width="5" fill="transparent"></path>
+        <!-- Additional branches for "many expansive branches" -->
+        <path d="M90 100 C70 120, 50 130, 30 120" stroke="#8B4513" stroke-width="5" fill="transparent"></path>
+        <path d="M110 100 C130 120, 150 130, 170 120" stroke="#8B4513" stroke-width="5" fill="transparent"></path>
+        <circle cx="30" cy="80" r="5" fill="#9ACD32"></circle>
+        <circle cx="170" cy="80" r="5" fill="#9ACD32"></circle>
+        <circle cx="30" cy="120" r="5" fill="#9ACD32"></circle>
+        <circle cx="170" cy="120" r="5" fill="#9ACD32"></circle>
+        <!-- Additional leaves for "lots of denser leaves" -->
+        <circle cx="50" cy="70" r="5" fill="#9ACD32"></circle>
+        <circle cx="150" cy="70" r="5" fill="#9ACD32"></circle>
+    </svg>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script>
+        anime({
+            targets: 'circle',
+            r: 10,
+            fill: {
+                value: ['#9ACD32', '#006400'],
+                easing: 'easeInOutQuad',
+                duration: 2000
+            },
+            easing: 'easeInOutQuad',
+            duration: 2000,
+            direction: 'alternate',
+            loop: true
+        });
+    </script>
+</body>
+</html>

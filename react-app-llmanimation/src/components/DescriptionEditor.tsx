@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactLoading from 'react-loading';
 import ContentEditable from './ContentEditable';
-import { Version } from '../types';
-
+import { Version, KeywordTree } from '../types';
 
 interface DescriptionEditorProps {
   onApply: (description: string) => void;
@@ -14,6 +13,7 @@ interface DescriptionEditorProps {
   currentVersionIndex: number | null;
   versions: Version[];
   setVersions: React.Dispatch<React.SetStateAction<Version[]>>;
+  extractKeywords: (description: string) => KeywordTree[];
 }
 
 const API_KEY = '';
@@ -28,6 +28,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
   currentVersionIndex,
   versions,
   setVersions,
+  extractKeywords,
 }) => {
   const [description, setDescription] = useState(propDescription);
   const [savedDescription, setSavedDescription] = useState('');
@@ -53,6 +54,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     Code snippet:\\
     <!DOCTYPE html>\\<html lang="en">\\  <head>\\    <style>\\      html, body {\\        margin: 0;\\        padding: 0;\\        width: 100%;\\        height: 100%;\\        display: flex;\\        justify-content: center;\\        align-items: center;\\        overflow: hidden;\\      }\\      svg {\\        width: 100vmin;\\        height: 100vmin;\\      }\\    </style>\\  </head>\\  <body>\\    <svg viewBox="0 0 200 200">\\      <path id="path1" d="M10,10 Q90,90 180,10" fill="transparent" stroke="black"/>\\      <path id="path2" d="M10,190 Q90,110 180,190" fill="transparent" stroke="black"/>\\      <circle id="ball1" cx="0" cy="0" r="5" fill="red"/>\\      <circle id="ball2" cx="0" cy="0" r="5" fill="blue"/>\\    </svg>\\    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>\\    <script>\\      anime({\\        targets: \'#ball1\',\\        translateX: anime.path(\'#path1\')(\'x\'),\\        translateY: anime.path(\'#path1\')(\'y\'),\\        easing: \'easeInOutQuad\',\\        duration: 2000,\\        loop: true,\\        direction: \'alternate\'\\      });\\      anime({\\        targets: \'#ball2\',\\        translateX: anime.path(\'#path2\')(\'x\'),\\        translateY: anime.path(\'#path2\')(\'y\'),\\        easing: \'easeInOutQuad\',\\        duration: 2000,\\        loop: true,\\        direction: \'alternate\'\\      });\\    </script>\\  </body>\\</html>\\ 
     Donnot use any external elements like images or svg, create everything with code.\\
+    Make sure to implement as much details from the description as possble. e.g., include elements (e.g., eyes, windows)of objects(e.g., fish, house), the features (e.g., shape, color) and the changes (e.g., movement, size, color)).
     Return response in this format: (Code:  \`\`\`html html code \`\`\`html, \`\`\`js javascript code, leave blank if none \`\`\`js, \`\`\`css css code, leave blank if none \`\`\`css; Explanation: explanations of the code). Instruction: ${description}`;
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -62,7 +64,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o",
+          model: "gpt-4",
           messages: [{ role: "system", content: "You are a creative programmer." }, { role: "user", content: prompt }],
         }),
       });
@@ -74,7 +76,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
         const newCode = parseGPTResponse(content);
         setLatestCode(newCode);
         onInitialize(newCode);
-        console.log('check code after gpt response', newCode)
+        console.log('check code after gpt response', currentVersionIndex, newCode)
         await handleSecondGPTCall(newCode, description);
       }
     } catch (error) {
@@ -299,6 +301,92 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     onWordSelected(word);
   };
 
+  const handleExtend = async () => {
+    if (currentVersionIndex === null) return;
+
+    setVersions((prevVersions) => {
+      const updatedVersions = [...prevVersions];
+      updatedVersions[currentVersionIndex].loading = true;
+      return updatedVersions;
+    });
+
+    const baseVersionName = versions[currentVersionIndex].id;
+    const newDescriptions: string[] = [];
+
+    try {
+
+      const prompt = `Help me extend a prompt and add more details. The prompt is for creating animations with anime.js. 
+      Extend the original prompt, to make it more expressive with more details that suits the prompt description and also give more clear instructions to what the animation code should be (e.g., tell in detail elements (e.g., eyes, windows)of objects(e.g., fish, house), the features (e.g., shape, color) and the changes (e.g., movement, size, color) as well as how they are made in animation code).
+      return 4 extended prompts in the response (divided by ///), and only return these extended. prompts in the response.
+      Make the extended prompt simple and precise, just describe the necessary details. Donnot add too much subjective modifier and contents irrelevant to original prompt.
+      Example:
+      Original prompt:
+      A fish swimming in ocean
+
+      response:
+      a blue fish with large eyes and flowing fins swimming straight in blue ocean.
+      ///
+      a fish with intricate scales, a bright orange body, and a curved tail swimming in waving paths in darkblue ocean.
+      ///
+      a tropical fish with vibrant stripes of yellow, green, and red with a streamlined body and sharp, pointed fins swimming slowly in blue ocean.
+      ///
+      a fish with a round body, whimsical patterns on its scales with small black eyes swimming from left to right in waving ocean.
+
+      Extend this prompt: ${description}`
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4-turbo",
+          messages: [
+            { role: "system", content: "You are a creative programmer." },
+            { role: "user", content: prompt },
+          ],
+        }),
+      });
+
+      const data = await response.json();
+
+      const newDescriptionContent = data.choices[0]?.message?.content;
+      console.log('check response from handleextend', data, newDescriptionContent)
+      if (newDescriptionContent) {
+        const newDescriptions = newDescriptionContent.split('///');
+
+        setVersions((prevVersions) => {
+          const updatedVersions = [...prevVersions];
+          newDescriptions.forEach((desc: string, index: number) => {
+            updatedVersions.push({
+              id: `${baseVersionName} extended ${index + 1}`,
+              description: desc.trim(),
+              code: { html: '', css: '', js: '' },
+              latestCode: { html: '', css: '', js: '' },
+              keywordTree: extractKeywords(desc),
+              wordselected: 'ocean',
+              highlightEnabled: false,
+              loading: false,
+              piecesToHighlightLevel1: [],
+              piecesToHighlightLevel2: []
+            });
+          });
+          return updatedVersions;
+        });
+      }
+      console.log('check versions in handleextend', versions)
+    } catch (error) {
+      console.error("Error processing extend request:", error);
+    }finally {
+      setVersions((prevVersions) => {
+        const updatedVersions = [...prevVersions];
+        updatedVersions[currentVersionIndex].loading = false;
+        return updatedVersions;
+      });
+    }
+  };
+
   const version = versions[currentVersionIndex || 0];
   const loading = version ? version.loading : false;
 
@@ -322,6 +410,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
         placeholder="Enter description here"
       />
       <div className="button-group">
+        <button className="purple-button" onClick={handleExtend}>Extend</button>
         <button className="purple-button" onClick={handleInitialize}>Initialize Description</button>
         <button className="purple-button" onClick={updateDescriptionGPTCall}>Update Description</button>
       </div>

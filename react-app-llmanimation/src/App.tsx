@@ -233,6 +233,7 @@ const App: React.FC = () => {
               currentVersionIndex={currentVersionIndex}
               versions={versions}
               setVersions={setVersions}
+              extractKeywords={extractKeywords} // Pass extractKeywords as a prop
             />
             <CustomCodeEditor
               code={versions[currentVersionIndex].code}

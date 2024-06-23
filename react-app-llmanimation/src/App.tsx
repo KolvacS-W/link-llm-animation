@@ -26,7 +26,10 @@ const App: React.FC = () => {
       highlightEnabled: false,
       loading: false,
       piecesToHighlightLevel1: [],
-      piecesToHighlightLevel2: []
+      piecesToHighlightLevel2: [],
+      showDetails: {},
+      latestText: '',
+      hiddenInfo: [],
     };
 
     setVersions([baseVersion]);
@@ -217,7 +220,10 @@ const App: React.FC = () => {
       highlightEnabled: false,
       loading: false,
       piecesToHighlightLevel1: [],
-      piecesToHighlightLevel2: []
+      piecesToHighlightLevel2: [],
+      showDetails: {},
+      latestText: '',
+      hiddenInfo: [],
     };
 
     setVersions([...versions, newVersion]);

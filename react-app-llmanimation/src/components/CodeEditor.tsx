@@ -40,13 +40,13 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   const [css, setCss] = useState(code.css);
   const [js, setJs] = useState(code.js);
   const [activeTab, setActiveTab] = useState('html');
-  const [piecesToHighlightLevel1, setPiecesToHighlightLevel1] = useState<string[]>([]);
-  const [piecesToHighlightLevel2, setPiecesToHighlightLevel2] = useState<string[]>([]);
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
 
   const version = currentVersionId !== null ? versions.find(version => version.id === currentVersionId) : null;
   const loading = version ? version.loading : false;
   const highlightEnabled = version ? version.highlightEnabled : true;
+  const piecesToHighlightLevel1 = version ? version.piecesToHighlightLevel1 : [];
+  const piecesToHighlightLevel2 = version ? version.piecesToHighlightLevel2 : [];
 
   useEffect(() => {
     setHtml(code.html);
@@ -56,18 +56,22 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
 
   useEffect(() => {
     if (highlightEnabled) {
-      updateHighlightPieces();
+      updateHighlightPieces(currentVersionId);
     }
-  }, [keywordTree, wordselected, highlightEnabled]);
+  }, [keywordTree, wordselected, highlightEnabled, currentVersionId]);
 
-  const handleApply = () => {
+  const handleParseRun = (versionId: string) => {
     onApply({ html, css, js });
-    processKeywordTree(keywordTree, currentVersionId);
+    processKeywordTree(versionId);
   };
 
-  const updateHighlightPieces = () => {
+  const updateHighlightPieces = (versionId: string | null) => {
+    if (!versionId) return;
+    
     const level1Pieces: string[] = [];
     const level2Pieces: string[] = [];
+
+    const keywordTree = versions.find(version => version.id === versionId)?.keywordTree || [];
 
     keywordTree.forEach((tree: KeywordTree) => {
       tree.keywords.forEach((keywordNode: KeywordNode) => {
@@ -79,11 +83,20 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       });
     });
 
-    setPiecesToHighlightLevel1(level1Pieces);
-    setPiecesToHighlightLevel2(level2Pieces);
+    setVersions(prevVersions => {
+      const updatedVersions = prevVersions.map(version =>
+        version.id === versionId
+          ? { ...version, piecesToHighlightLevel1: level1Pieces, piecesToHighlightLevel2: level2Pieces }
+          : version
+      );
+      return updatedVersions;
+    });
   };
 
-  const processKeywordTree = async (keywordTree: KeywordTree[], versionId: string) => {
+  //called when new code is generated
+  const processKeywordTree = async (versionId: string | null) => {
+    if (!versionId) return;
+
     const gptResults = await ParseCodeGPTCall(versionId);
     const codePieces = gptResults.split('$$$');
     const sublists = codePieces.map(piece => piece.split('@@@'));
@@ -105,7 +118,9 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       });
     });
 
-    keywordTree.forEach((tree: KeywordTree) => {
+    const updatedKeywordTree = versions.find(version => version.id === versionId)?.keywordTree || [];
+
+    updatedKeywordTree.forEach((tree: KeywordTree) => {
       tree.keywords.forEach((keywordNode: KeywordNode) => {
         keywordNode.codeBlock = '';
 
@@ -128,8 +143,21 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
         }
       });
     });
+    //update tree first
+    setVersions((prevVersions) => {
+      const updatedVersions = prevVersions.map(version => 
+        version.id === versionId 
+          ? { 
+              ...version, 
+              keywordTree: updatedKeywordTree
+            }
+          : version
+      );
+      return updatedVersions;
+    });
 
-    updateHighlightPieces();
+    updateHighlightPieces(versionId);
+
   };
 
   const ParseCodeGPTCall = async (versionId: string): Promise<string> => {
@@ -262,7 +290,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   const handleUpdateCode = async (versionId: string) => {
-    // onApply({ html, css, js }, versionIndex); // Save new updated code
+    if (!versionId) return;
+
     setVersions((prevVersions) => {
       const updatedVersions = prevVersions.map(version =>
         version.id === versionId
@@ -325,8 +354,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
           );
           return updatedVersions;
         });
-        // onUpdateDescription(newDescriptionContent, versionId);
-        processKeywordTree(keywordTree, versionId);
+        processKeywordTree(versionId);
       }
     } catch (error) {
       console.error("Error processing update code request:", error);
@@ -341,7 +369,6 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       });
     }
   };
-
 
   const getFullText = (node: any) => {
     let text = '';
@@ -477,7 +504,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
         {renderActiveTab()}
       </div>
       <div className="button-group">
-        <button className="blue-button" onClick={handleApply}>Parse and Run</button>
+        <button className="blue-button" onClick={() => handleParseRun(currentVersionId || '')}>Parse and Run</button>
         <button className="purple-button" onClick={() => handleUpdateCode(currentVersionId || '')}>Update Code</button>
         <button 
           className="green-button" 

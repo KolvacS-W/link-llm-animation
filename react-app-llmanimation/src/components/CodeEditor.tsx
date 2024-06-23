@@ -7,11 +7,11 @@ import { Version, KeywordTree, KeywordNode } from '../types';
 
 interface CodeEditorProps {
   code: { html: string; css: string; js: string };
-  onApply: (code: { html: string; css: string; js: string }) => void;
+  onApply: (code: { html: string; css: string; js: string }, versionIndex: number) => void;
   description: string;
-  onUpdateDescription: (newDescription: string) => void;
+  onUpdateDescription: (newDescription: string, versionIndex: number) => void;
   latestCode: { html: string; css: string; js: string };
-  setLatestCode: (code: { html: string; css: string; js: string }) => void;
+  setLatestCode: (code: { html: string; css: string; js: string }, versionIndex: number) => void;
   keywordTree: KeywordTree[];
   wordselected: string;
   currentVersionIndex: number | null;
@@ -59,7 +59,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   }, [keywordTree, wordselected, highlightEnabled]);
 
   const handleApply = () => {
-    onApply({ html, css, js });
+    onApply({ html, css, js }, currentVersionIndex || 0);
     processKeywordTree(keywordTree);
   };
 
@@ -82,7 +82,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   const processKeywordTree = async (keywordTree: KeywordTree[]) => {
-    const gptResults = await ParseCodeGPTCall();
+    const gptResults = await ParseCodeGPTCall(currentVersionIndex || 0);
     const codePieces = gptResults.split('$$$');
     const sublists = codePieces.map(piece => piece.split('@@@'));
 
@@ -130,12 +130,10 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     updateHighlightPieces();
   };
 
-  const ParseCodeGPTCall = async (): Promise<string> => {
+  const ParseCodeGPTCall = async (versionIndex: number): Promise<string> => {
     setVersions(prevVersions => {
       const updatedVersions = [...prevVersions];
-      if (currentVersionIndex !== null) {
-        updatedVersions[currentVersionIndex].loading = true;
-      }
+      updatedVersions[versionIndex].loading = true;
       return updatedVersions;
     });
 
@@ -242,7 +240,6 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
 
       const data = await response.json();
       const gptResponse = data.choices[0]?.message?.content;
-      console.log('code parse results', gptResponse);
       return gptResponse;
     } catch (error) {
       console.error("Error processing GPT request:", error);
@@ -250,26 +247,20 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     } finally {
       setVersions(prevVersions => {
         const updatedVersions = [...prevVersions];
-        if (currentVersionIndex !== null) {
-          updatedVersions[currentVersionIndex].loading = false;
-        }
+        updatedVersions[versionIndex].loading = false;
         return updatedVersions;
       });
     }
   };
 
-  const handleUpdateCode = async () => {
-    onApply({ html, css, js }); // Save new updated code
+  const handleUpdateCode = async (versionIndex: number) => {
+    onApply({ html, css, js }, versionIndex); // Save new updated code
 
     setVersions(prevVersions => {
       const updatedVersions = [...prevVersions];
-      if (currentVersionIndex !== null) {
-        updatedVersions[currentVersionIndex].loading = true;
-      }
+      updatedVersions[versionIndex].loading = true;
       return updatedVersions;
     });
-
-    console.log('check versions in handleUpdateCode', versions);
 
     const prompt = `Based on the following existing old description describing old code and the updated code, provide an updated description reflecting changes to the code. \\
     Old description: ${description}. \\
@@ -301,7 +292,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       const newDescriptionContent = data.choices[0]?.message?.content;
 
       if (newDescriptionContent) {
-        onUpdateDescription(newDescriptionContent);
+        onUpdateDescription(newDescriptionContent, versionIndex);
         processKeywordTree(keywordTree);
       }
     } catch (error) {
@@ -309,9 +300,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     } finally {
       setVersions(prevVersions => {
         const updatedVersions = [...prevVersions];
-        if (currentVersionIndex !== null) {
-          updatedVersions[currentVersionIndex].loading = false;
-        }
+        updatedVersions[versionIndex].loading = false;
         return updatedVersions;
       });
     }
@@ -452,7 +441,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       </div>
       <div className="button-group">
         <button className="blue-button" onClick={handleApply}>Parse and Run</button>
-        <button className="purple-button" onClick={handleUpdateCode}>Update Code</button>
+        <button className="purple-button" onClick={() => handleUpdateCode(currentVersionIndex || 0)}>Update Code</button>
         <button 
           className="green-button" 
           onClick={() => setVersions(prevVersions => {

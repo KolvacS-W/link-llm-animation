@@ -1,16 +1,17 @@
+// Import necessary libraries and types
 import React, { useState, useEffect } from 'react';
 import ReactLoading from 'react-loading';
 import ContentEditable from './ContentEditable';
 import { Version, KeywordTree } from '../types';
 
 interface DescriptionEditorProps {
-  onApply: (description: string, versionIndex: number) => void;
-  onInitialize: (code: { html: string; css: string; js: string }, versionIndex: number) => void;
+  onApply: (description: string) => void;
+  onInitialize: (code: { html: string; css: string; js: string }) => void;
   latestCode: { html: string; css: string; js: string };
-  setLatestCode: (code: { html: string; css: string; js: string }, versionIndex: number) => void;
+  setLatestCode: (code: { html: string; css: string; js: string }) => void;
   description: string;
   onWordSelected: (word: string) => void;
-  currentVersionIndex: number | null;
+  currentVersionId: string | null;
   versions: Version[];
   setVersions: React.Dispatch<React.SetStateAction<Version[]>>;
   extractKeywords: (description: string) => KeywordTree[];
@@ -25,7 +26,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
   setLatestCode,
   description: propDescription,
   onWordSelected,
-  currentVersionIndex,
+  currentVersionId,
   versions,
   setVersions,
   extractKeywords,
@@ -41,10 +42,15 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     setLatestText(propDescription); // Update latestText when description changes
   }, [propDescription]);
 
-  const handleInitialize = async (versionIndex: number) => {
+  const handleInitialize = async () => {
+    if (currentVersionId === null) return;
+
     setVersions((prevVersions) => {
-      const updatedVersions = [...prevVersions];
-      updatedVersions[versionIndex].loading = true;
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? { ...version, loading: true }
+          : version
+      );
       return updatedVersions;
     });
 
@@ -52,7 +58,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     Code snippet:\\
     <!DOCTYPE html>\\<html lang="en">\\  <head>\\    <style>\\      html, body {\\        margin: 0;\\        padding: 0;\\        width: 100%;\\        height: 100%;\\        display: flex;\\        justify-content: center;\\        align-items: center;\\        overflow: hidden;\\      }\\      svg {\\        width: 100vmin;\\        height: 100vmin;\\      }\\    </style>\\  </head>\\  <body>\\    <svg viewBox="0 0 200 200">\\      <path id="path1" d="M10,10 Q90,90 180,10" fill="transparent" stroke="black"/>\\      <path id="path2" d="M10,190 Q90,110 180,190" fill="transparent" stroke="black"/>\\      <circle id="ball1" cx="0" cy="0" r="5" fill="red"/>\\      <circle id="ball2" cx="0" cy="0" r="5" fill="blue"/>\\    </svg>\\    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>\\    <script>\\      anime({\\        targets: \'#ball1\',\\        translateX: anime.path(\'#path1\')(\'x\'),\\        translateY: anime.path(\'#path1\')(\'y\'),\\        easing: \'easeInOutQuad\',\\        duration: 2000,\\        loop: true,\\        direction: \'alternate\'\\      });\\      anime({\\        targets: \'#ball2\',\\        translateX: anime.path(\'#path2\')(\'x\'),\\        translateY: anime.path(\'#path2\')(\'y\'),\\        easing: \'easeInOutQuad\',\\        duration: 2000,\\        loop: true,\\        direction: \'alternate\'\\      });\\    </script>\\  </body>\\</html>\\ 
     Donnot use any external elements like images or svg, create everything with code.\\
-    Make sure to implement as much details from the description as possible. e.g., include elements (e.g., eyes, windows) of objects (e.g., fish, house), the features (e.g., shape, color) and the changes (e.g., movement, size, color)).
+    Make sure to implement as much details from the description as possble. e.g., include elements (e.g., eyes, windows)of objects(e.g., fish, house), the features (e.g., shape, color) and the changes (e.g., movement, size, color)).
     Try to include css and javascript code in html like the code snippet.
     Return response in this format: (Code:  \`\`\`html html code \`\`\`html, \`\`\`js javascript code, leave blank if none \`\`\`js, \`\`\`css css code, leave blank if none \`\`\`css; Explanation: explanations of the code). Instruction: ${description}`;
     try {
@@ -63,7 +69,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o",
+          model: "gpt-4-turbo",
           messages: [{ role: "system", content: "You are a creative programmer." }, { role: "user", content: prompt }],
         }),
       });
@@ -73,22 +79,28 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
 
       if (content) {
         const newCode = parseGPTResponse(content);
-        setLatestCode(newCode, versionIndex);
-        onInitialize(newCode, versionIndex);
-        await handleSecondGPTCall(newCode, description, versionIndex);
+        setLatestCode(newCode);
+        onInitialize(newCode);
+        console.log('check code after gpt response', currentVersionId, newCode)
+        await handleSecondGPTCall(newCode, description);
       }
     } catch (error) {
       console.error("Error processing request:", error);
     } finally {
       setVersions((prevVersions) => {
-        const updatedVersions = [...prevVersions];
-        updatedVersions[versionIndex].loading = false;
+        const updatedVersions = prevVersions.map(version =>
+          version.id === currentVersionId
+            ? { ...version, loading: false }
+            : version
+        );
         return updatedVersions;
       });
     }
   };
 
-  const handleSecondGPTCall = async (newCode: { html: string; css: string; js: string }, existingDescription: string, versionIndex: number) => {
+  const handleSecondGPTCall = async (newCode: { html: string; css: string; js: string }, existingDescription: string) => {
+    if (currentVersionId === null) return;
+
     const newPrompt = `Based on the following code and description, provide an updated description. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${existingDescription}. create the updated description by 1): finding important entities in the old description (for example, 'planet', 'shape', 'color', 'move' are all entity) and inserting [] around them 2): insert a detail wrapped in {} behind each entity according to the code (for example, add number of planets and each planet's dom element type, class, style features and name to entity 'planet').\\
     New description format:\\
     xxxxx[entity1]{detail for entity1}xxxx[entity2]{detail for entity2}... \\ 
@@ -116,23 +128,24 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
 
       if (newDescriptionContent) {
         const updatedDescription = newDescriptionContent.replace('] {', ']{');
-        setVersions((prevVersions) => {
-          const updatedVersions = [...prevVersions];
-          updatedVersions[versionIndex].description = updatedDescription;
-          updatedVersions[versionIndex].keywordTree = extractKeywords(updatedDescription);
-          return updatedVersions;
-        });
-        onApply(updatedDescription, versionIndex);
+        setDescription(updatedDescription);
+        setSavedDescription(updatedDescription);
+        onApply(updatedDescription);
       }
     } catch (error) {
       console.error("Error processing second request:", error);
     }
   };
 
-  const updateDescriptionGPTCall = async (versionIndex: number) => {
+  const updateDescriptionGPTCall = async () => {
+    if (currentVersionId === null) return;
+
     setVersions((prevVersions) => {
-      const updatedVersions = [...prevVersions];
-      updatedVersions[versionIndex].loading = true;
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? { ...version, loading: true }
+          : version
+      );
       return updatedVersions;
     });
 
@@ -162,24 +175,30 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
 
       const data = await response.json();
       const content = data.choices[0]?.message?.content;
+      console.log('check response from updateDescriptionGPTCall', content)
       if (content) {
         const newCode = parseGPTResponse(content);
-        setLatestCode(newCode, versionIndex);
-        onInitialize(newCode, versionIndex);
-        await GPTCallAfterupdateDescription(newCode, description, versionIndex);
+        setLatestCode(newCode);
+        onInitialize(newCode);
+        await GPTCallAfterupdateDescription(newCode, description);
       }
     } catch (error) {
       console.error("Error processing update description request:", error);
     } finally {
       setVersions((prevVersions) => {
-        const updatedVersions = [...prevVersions];
-        updatedVersions[versionIndex].loading = false;
+        const updatedVersions = prevVersions.map(version =>
+          version.id === currentVersionId
+            ? { ...version, loading: false }
+            : version
+        );
         return updatedVersions;
       });
     }
   };
 
-  const GPTCallAfterupdateDescription = async (newCode: { html: string; css: string; js: string }, existingDescription: string, versionIndex: number) => {
+  const GPTCallAfterupdateDescription = async (newCode: { html: string; css: string; js: string }, existingDescription: string) => {
+    if (currentVersionId === null) return;
+
     const newPrompt = `Slightly refine the given description for the code, to make it fit the code better. Code: HTML: \`\`\`html${newCode.html}\`\`\` CSS: \`\`\`css${newCode.css}\`\`\` JS: \`\`\`js${newCode.js}\`\`\` Description: ${description}.\\
     New description format:\\
     xxxxx[entity1]{detail for entity1}xxxx[entity2]{detail for entity2}... \\ 
@@ -204,15 +223,13 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       const data = await response.json();
       const newDescriptionContent = data.choices[0]?.message?.content;
 
+      console.log('new desc after updating desc', newDescriptionContent)
+
       if (newDescriptionContent) {
         const updatedDescription = newDescriptionContent.replace('] {', ']{');
-        setVersions((prevVersions) => {
-          const updatedVersions = [...prevVersions];
-          updatedVersions[versionIndex].description = updatedDescription;
-          updatedVersions[versionIndex].keywordTree = extractKeywords(updatedDescription);
-          return updatedVersions;
-        });
-        onApply(updatedDescription, versionIndex);
+        setDescription(updatedDescription);
+        setSavedDescription(updatedDescription);
+        onApply(updatedDescription);
       }
     } catch (error) {
       console.error("Error processing second request:", error);
@@ -292,26 +309,33 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       .trim(); // Trim any leading or trailing whitespace
 
     setDescription(text.replace('] {', ']{'));
-    onApply(text.replace('] {', ']{'), currentVersionIndex || 0);
+    onApply(text.replace('] {', ']{'));
+    console.log('tab press, save desc', description)
   };
 
   const handleDoubleClick = (word: string) => {
     onWordSelected(word);
   };
 
-  const handleExtend = async (versionIndex: number) => {
+  const handleExtend = async () => {
+    if (currentVersionId === null) return;
+
     setVersions((prevVersions) => {
-      const updatedVersions = [...prevVersions];
-      updatedVersions[versionIndex].loading = true;
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? { ...version, loading: true }
+          : version
+      );
       return updatedVersions;
     });
 
-    const baseVersionName = versions[versionIndex].id;
+    const baseVersionName = versions.find(version => version.id === currentVersionId)?.id || '';
     const newDescriptions: string[] = [];
 
     try {
+
       const prompt = `Help me extend a prompt and add more details. The prompt is for creating animations with anime.js. 
-      Extend the original prompt, to make it more expressive with more details that suits the prompt description and also give more clear instructions to what the animation code should be (e.g., tell in detail elements (e.g., eyes, windows) of objects (e.g., fish, house), the features (e.g., shape, color) and the changes (e.g., movement, size, color) as well as how they are made in animation code).
+      Extend the original prompt, to make it more expressive with more details that suits the prompt description and also give more clear instructions to what the animation code should be (e.g., tell in detail elements (e.g., eyes, windows)of objects(e.g., fish, house), the features (e.g., shape, color) and the changes (e.g., movement, size, color) as well as how they are made in animation code).
       return 4 extended prompts in the response (divided by ///), and only return these extended. prompts in the response.
       Make the extended prompt simple and precise, just describe the necessary details. Donnot add too much subjective modifier and contents irrelevant to original prompt.
       Example:
@@ -327,7 +351,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       ///
       a fish with a round body, whimsical patterns on its scales with small black eyes swimming from left to right in waving ocean.
 
-      Extend this prompt: ${description}`;
+      Extend this prompt: ${description}`
 
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -345,15 +369,20 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       });
 
       const data = await response.json();
-      const newDescriptionContent = data.choices[0]?.message?.content;
 
+      const newDescriptionContent = data.choices[0]?.message?.content;
+      console.log('check response from handleextend', data, newDescriptionContent)
       if (newDescriptionContent) {
         const newDescriptions = newDescriptionContent.split('///');
+
         setVersions((prevVersions) => {
-          const updatedVersions = [...prevVersions];
+          const updatedVersions = prevVersions.map(version => ({
+            ...version,
+            loading: false
+          }));
           newDescriptions.forEach((desc: string, index: number) => {
             updatedVersions.push({
-              id: `${baseVersionName} extended ${index + 1}`,
+              id: `${baseVersionName}-extended-${index + 1}`,
               description: desc.trim(),
               code: { html: '', css: '', js: '' },
               latestCode: { html: '', css: '', js: '' },
@@ -368,18 +397,22 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
           return updatedVersions;
         });
       }
+      console.log('check versions in handleextend', versions)
     } catch (error) {
       console.error("Error processing extend request:", error);
-    } finally {
+    }finally {
       setVersions((prevVersions) => {
-        const updatedVersions = [...prevVersions];
-        updatedVersions[versionIndex].loading = false;
+        const updatedVersions = prevVersions.map(version =>
+          version.id === currentVersionId
+            ? { ...version, loading: false }
+            : version
+        );
         return updatedVersions;
       });
     }
   };
 
-  const version = versions[currentVersionIndex || 0];
+  const version = versions.find(version => version.id === currentVersionId);
   const loading = version ? version.loading : false;
 
   return (
@@ -402,9 +435,9 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
         placeholder="Enter description here"
       />
       <div className="button-group">
-        <button className="purple-button" onClick={() => handleExtend(currentVersionIndex || 0)}>Extend</button>
-        <button className="purple-button" onClick={() => handleInitialize(currentVersionIndex || 0)}>Initialize Description</button>
-        <button className="purple-button" onClick={() => updateDescriptionGPTCall(currentVersionIndex || 0)}>Update Description</button>
+        <button className="purple-button" onClick={handleExtend}>Extend</button>
+        <button className="purple-button" onClick={handleInitialize}>Initialize Description</button>
+        <button className="purple-button" onClick={updateDescriptionGPTCall}>Update Description</button>
       </div>
       {loading && (
         <div className="loading-container">

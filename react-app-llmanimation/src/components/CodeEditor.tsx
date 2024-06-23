@@ -7,14 +7,14 @@ import { Version, KeywordTree, KeywordNode } from '../types';
 
 interface CodeEditorProps {
   code: { html: string; css: string; js: string };
-  onApply: (code: { html: string; css: string; js: string }, versionIndex: number) => void;
+  onApply: (code: { html: string; css: string; js: string }) => void;
   description: string;
-  onUpdateDescription: (newDescription: string, versionIndex: number) => void;
+  onUpdateDescription: (newDescription: string, versionId: string) => void;
   latestCode: { html: string; css: string; js: string };
-  setLatestCode: (code: { html: string; css: string; js: string }, versionIndex: number) => void;
+  setLatestCode: (code: { html: string; css: string; js: string }) => void;
   keywordTree: KeywordTree[];
   wordselected: string;
-  currentVersionIndex: number | null;
+  currentVersionId: string | null;
   setVersions: React.Dispatch<React.SetStateAction<Version[]>>;
   versions: Version[]; // Add versions to the props
 }
@@ -30,7 +30,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   setLatestCode,
   keywordTree,
   wordselected,
-  currentVersionIndex,
+  currentVersionId,
   setVersions,
   versions // Receive versions as a prop
 }) => {
@@ -42,7 +42,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   const [piecesToHighlightLevel2, setPiecesToHighlightLevel2] = useState<string[]>([]);
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const version = currentVersionIndex !== null ? versions[currentVersionIndex] : null;
+  const version = currentVersionId !== null ? versions.find(version => version.id === currentVersionId) : null;
   const loading = version ? version.loading : false;
   const highlightEnabled = version ? version.highlightEnabled : true;
 
@@ -59,7 +59,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   }, [keywordTree, wordselected, highlightEnabled]);
 
   const handleApply = () => {
-    onApply({ html, css, js }, currentVersionIndex || 0);
+    onApply({ html, css, js });
     processKeywordTree(keywordTree);
   };
 
@@ -82,7 +82,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   const processKeywordTree = async (keywordTree: KeywordTree[]) => {
-    const gptResults = await ParseCodeGPTCall(currentVersionIndex || 0);
+    const gptResults = await ParseCodeGPTCall();
     const codePieces = gptResults.split('$$$');
     const sublists = codePieces.map(piece => piece.split('@@@'));
 
@@ -130,10 +130,13 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     updateHighlightPieces();
   };
 
-  const ParseCodeGPTCall = async (versionIndex: number): Promise<string> => {
+  const ParseCodeGPTCall = async (): Promise<string> => {
     setVersions(prevVersions => {
-      const updatedVersions = [...prevVersions];
-      updatedVersions[versionIndex].loading = true;
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? { ...version, loading: true }
+          : version
+      );
       return updatedVersions;
     });
 
@@ -240,27 +243,36 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
 
       const data = await response.json();
       const gptResponse = data.choices[0]?.message?.content;
+      console.log('code parse results', gptResponse);
       return gptResponse;
     } catch (error) {
       console.error("Error processing GPT request:", error);
       return '';
     } finally {
       setVersions(prevVersions => {
-        const updatedVersions = [...prevVersions];
-        updatedVersions[versionIndex].loading = false;
+        const updatedVersions = prevVersions.map(version =>
+          version.id === currentVersionId
+            ? { ...version, loading: false }
+            : version
+        );
         return updatedVersions;
       });
     }
   };
 
-  const handleUpdateCode = async (versionIndex: number) => {
-    onApply({ html, css, js }, versionIndex); // Save new updated code
+  const handleUpdateCode = async () => {
+    onApply({ html, css, js }); // Save new updated code
 
     setVersions(prevVersions => {
-      const updatedVersions = [...prevVersions];
-      updatedVersions[versionIndex].loading = true;
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? { ...version, loading: true }
+          : version
+      );
       return updatedVersions;
     });
+
+    console.log('check versions in handleUpdateCode', versions);
 
     const prompt = `Based on the following existing old description describing old code and the updated code, provide an updated description reflecting changes to the code. \\
     Old description: ${description}. \\
@@ -292,15 +304,18 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       const newDescriptionContent = data.choices[0]?.message?.content;
 
       if (newDescriptionContent) {
-        onUpdateDescription(newDescriptionContent, versionIndex);
+        onUpdateDescription(newDescriptionContent, currentVersionId!);
         processKeywordTree(keywordTree);
       }
     } catch (error) {
       console.error("Error processing update code request:", error);
     } finally {
       setVersions(prevVersions => {
-        const updatedVersions = [...prevVersions];
-        updatedVersions[versionIndex].loading = false;
+        const updatedVersions = prevVersions.map(version =>
+          version.id === currentVersionId
+            ? { ...version, loading: false }
+            : version
+        );
         return updatedVersions;
       });
     }
@@ -441,14 +456,15 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       </div>
       <div className="button-group">
         <button className="blue-button" onClick={handleApply}>Parse and Run</button>
-        <button className="purple-button" onClick={() => handleUpdateCode(currentVersionIndex || 0)}>Update Code</button>
+        <button className="purple-button" onClick={handleUpdateCode}>Update Code</button>
         <button 
           className="green-button" 
           onClick={() => setVersions(prevVersions => {
-            const updatedVersions = [...prevVersions];
-            if (currentVersionIndex !== null) {
-              updatedVersions[currentVersionIndex].highlightEnabled = !highlightEnabled;
-            }
+            const updatedVersions = prevVersions.map(version =>
+              version.id === currentVersionId
+                ? { ...version, highlightEnabled: !highlightEnabled }
+                : version
+            );
             return updatedVersions;
           })}
         >

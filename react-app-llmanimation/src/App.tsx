@@ -4,15 +4,16 @@ import CustomCodeEditor from './components/CodeEditor';
 import ResultViewer from './components/ResultViewer';
 import './App.css';
 import { KeywordTree, Version } from './types';
+import { v4 as uuidv4 } from 'uuid';
 
 const App: React.FC = () => {
   const [versions, setVersions] = useState<Version[]>([]);
-  const [currentVersionIndex, setCurrentVersionIndex] = useState<number | null>(0);
+  const [currentVersionId, setCurrentVersionId] = useState<string | null>(null);
 
   useEffect(() => {
     // Initialize the base version on load
     const baseVersion: Version = {
-      id: "",
+      id: 'init',
       description: "Adding sth...",
       code: { html: '', css: '', js: '' },
       latestCode: { html: '', css: '', js: '' },
@@ -28,6 +29,7 @@ const App: React.FC = () => {
     };
 
     setVersions([baseVersion]);
+    setCurrentVersionId(baseVersion.id);
   }, []);
 
   const stopwords = new Set([
@@ -83,109 +85,123 @@ const App: React.FC = () => {
         parentKeyword: null
       });
     });
-    console.log('keyword tree updated', currentVersionIndex, newKeywordTree)
+    console.log('keyword tree updated', currentVersionId, newKeywordTree)
     return newKeywordTree;
   };
 
   const handleDescriptionApply = (newDescription: string) => {
-    if (currentVersionIndex === null) return;
+    if (currentVersionId === null) return;
     setVersions((prevVersions) => {
-      const updatedVersions = [...prevVersions];
-      updatedVersions[currentVersionIndex] = {
-        ...updatedVersions[currentVersionIndex],
-        description: newDescription,
-        keywordTree: extractKeywords(newDescription),
-      };
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? { ...version, description: newDescription, keywordTree: extractKeywords(newDescription) }
+          : version
+      );
       return updatedVersions;
     });
   };
 
   const handleCodeInitialize = (newCode: { html: string; css: string; js: string }) => {
     console.log('check code in handleCodeInitialize', newCode.html)
-    if (currentVersionIndex === null) return;
+    if (currentVersionId === null) return;
     setVersions((prevVersions) => {
-      const updatedVersions = [...prevVersions];
-      updatedVersions[currentVersionIndex] = {
-        ...updatedVersions[currentVersionIndex],
-        code: newCode,
-      };
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? { ...version, code: newCode }
+          : version
+      );
       return updatedVersions;
     });
   };
 
-  const handleUpdateDescription = (newDescription: string, versionIndex: number) => {
+  const handleUpdateDescription = (newDescription: string) => {
+    if (currentVersionId === null) return;
     setVersions((prevVersions) => {
-      const updatedVersions = [...prevVersions];
-      updatedVersions[versionIndex] = {
-        ...updatedVersions[versionIndex],
-        description: newDescription,
-        keywordTree: extractKeywords(newDescription),
-      };
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? { ...version, description: newDescription, keywordTree: extractKeywords(newDescription) }
+          : version
+      );
       return updatedVersions;
     });
   };
 
   const handleWordSelected = (word: string) => {
-    if (currentVersionIndex === null) return;
+    if (currentVersionId === null) return;
     setVersions((prevVersions) => {
-      const updatedVersions = [...prevVersions];
-      updatedVersions[currentVersionIndex] = {
-        ...updatedVersions[currentVersionIndex],
-        wordselected: word,
-      };
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? { ...version, wordselected: word }
+          : version
+      );
       return updatedVersions;
     });
   };
+
   const saveCurrentVersion = () => {
-    if (versions[currentVersionIndex].id != '') {
-      console.log('update and save version', versions[currentVersionIndex]);
-      const updatedVersions = versions.map((version, index) =>
-        index === currentVersionIndex
-          ? {
-              ...version,
-              description: versions[currentVersionIndex]!.description,
-              code: versions[currentVersionIndex]!.code,
-              latestCode: versions[currentVersionIndex]!.latestCode,
-              keywordTree: versions[currentVersionIndex]!.keywordTree,
-              wordselected: versions[currentVersionIndex]!.wordselected,
-              highlightEnabled: versions[currentVersionIndex]!.highlightEnabled,
-              loading: versions[currentVersionIndex]!.loading,
-              piecesToHighlightLevel1: versions[currentVersionIndex]!.piecesToHighlightLevel1,
-              piecesToHighlightLevel2: versions[currentVersionIndex]!.piecesToHighlightLevel2,
-            }
-          : version
-      );
-      setVersions(updatedVersions);
-    } else {
+    const currentVersion = versions.find(version => version.id === currentVersionId);
+    if (!currentVersion) return;
+
+    if (currentVersion.id.includes('init')) {
       const versionName = prompt("Enter version name:");
       if (!versionName) return;
-      console.log('update and save version', versions[currentVersionIndex], versions[currentVersionIndex]!.description);
-      const updatedVersions = versions.map((version, index) =>
-        index === currentVersionIndex
-          ? {
-              ...version,
+      //change version id first
+      setVersions((prevVersions) => {
+        const updatedVersions = prevVersions.map(version =>
+          version.id === currentVersionId
+            ? { ...version,
               id: versionName,
-              description: versions[currentVersionIndex]!.description,
-              code: versions[currentVersionIndex]!.code,
-              latestCode: versions[currentVersionIndex]!.latestCode,
-              keywordTree: versions[currentVersionIndex]!.keywordTree,
-              wordselected: versions[currentVersionIndex]!.wordselected,
-              highlightEnabled: versions[currentVersionIndex]!.highlightEnabled,
-              loading: versions[currentVersionIndex]!.loading,
-              piecesToHighlightLevel1: versions[currentVersionIndex]!.piecesToHighlightLevel1,
-              piecesToHighlightLevel2: versions[currentVersionIndex]!.piecesToHighlightLevel2,
+              }
+            : version
+        );
+        return updatedVersions;
+      });
+      setCurrentVersionId(versionName);
+      //update version contents
+      setVersions((prevVersions) => {
+        const updatedVersions = prevVersions.map(version =>
+          version.id === currentVersionId
+            ? { ...version,
+              description: versions[currentVersionId]!.description,
+              code: versions[currentVersionId]!.code,
+              latestCode: versions[currentVersionId]!.latestCode,
+              keywordTree: versions[currentVersionId]!.keywordTree,
+              wordselected: versions[currentVersionId]!.wordselected,
+              highlightEnabled: versions[currentVersionId]!.highlightEnabled,
+              loading: versions[currentVersionId]!.loading,
+              piecesToHighlightLevel1: versions[currentVersionId]!.piecesToHighlightLevel1,
+              piecesToHighlightLevel2: versions[currentVersionId]!.piecesToHighlightLevel2,
             }
-          : version
-      );
-      setVersions(updatedVersions);
+            : version
+        );
+        return updatedVersions;
+      });
+    } else {
+      setVersions((prevVersions) => {
+        const updatedVersions = prevVersions.map(version =>
+          version.id === currentVersionId
+            ? { ...version,
+              description: versions[currentVersionId]!.description,
+              code: versions[currentVersionId]!.code,
+              latestCode: versions[currentVersionId]!.latestCode,
+              keywordTree: versions[currentVersionId]!.keywordTree,
+              wordselected: versions[currentVersionId]!.wordselected,
+              highlightEnabled: versions[currentVersionId]!.highlightEnabled,
+              loading: versions[currentVersionId]!.loading,
+              piecesToHighlightLevel1: versions[currentVersionId]!.piecesToHighlightLevel1,
+              piecesToHighlightLevel2: versions[currentVersionId]!.piecesToHighlightLevel2,
+            }
+            : version
+        );
+        return updatedVersions;
+      });
     }
     console.log('check all versions', versions);
   };
 
   const createNewVersion = () => {
-    console.log('check all versions', versions);
     const newVersion: Version = {
-      id: ``,
+      id: 'init'+uuidv4(),
       description: "Adding sth...",
       code: { html: '', css: '', js: '' },
       latestCode: { html: '', css: '', js: '' },
@@ -201,66 +217,82 @@ const App: React.FC = () => {
     };
 
     setVersions([...versions, newVersion]);
-    setCurrentVersionIndex(versions.length);
+    setCurrentVersionId(newVersion.id);
   };
 
+  const generateUniqueId = (baseId: string) => {
+    let newId = baseId;
+    let counter = 1;
+    while (versions.some(version => version.id === newId)) {
+      newId = `${baseId}${counter}`;
+      counter += 1;
+    }
+    return newId;
+  };
+  
   const copyCurrentVersion = () => {
-    if (currentVersionIndex === null) return;
-    const currentVersion = versions[currentVersionIndex];
-    const copiedVersion: Version = {
+    const currentVersion = versions.find(version => version.id === currentVersionId);
+    if (!currentVersion) return;
+
+    const baseId = `${currentVersion.id}-copy`;
+    const newId = generateUniqueId(baseId);
+
+    const newVersion: Version = {
       ...currentVersion,
-      id: `${currentVersion.id}-copy`,
+      id: newId,
     };
 
-    setVersions([...versions, copiedVersion]);
-    setCurrentVersionIndex(versions.length);
+    setVersions([...versions, newVersion]);
+    setCurrentVersionId(newVersion.id);
   };
 
-  const switchToVersion = (index: number) => {
-    console.log('switch to version', index)
+
+  const switchToVersion = (id: string) => {
     console.log('check all versions', versions);
-    const selectedVersion = versions[index];
-    console.log('selected version', selectedVersion);
-    setCurrentVersionIndex(index);
+    const selectedVersion = versions.find(version => version.id === id);
+    if (selectedVersion) {
+      console.log('selected version', selectedVersion);
+      setCurrentVersionId(id);
+    }
   };
 
   const deleteVersion = (id: string) => {
     setVersions((prevVersions) => prevVersions.filter(version => version.id !== id));
-    setCurrentVersionIndex(null);
+    setCurrentVersionId(null);
     // createNewVersion();
   };
 
   return (
     <div className="App">
       <div className="editor-section">
-        {currentVersionIndex !== null && versions[currentVersionIndex] && (
+        {currentVersionId !== null && versions.find(version => version.id === currentVersionId) && (
           <>
             <DescriptionEditor
               onApply={handleDescriptionApply}
               onInitialize={handleCodeInitialize}
-              latestCode={versions[currentVersionIndex].latestCode}
+              latestCode={versions.find(version => version.id === currentVersionId)!.latestCode}
               setLatestCode={(code) => handleCodeInitialize(code)}
-              description={versions[currentVersionIndex].description}
+              description={versions.find(version => version.id === currentVersionId)!.description}
               onWordSelected={handleWordSelected}
-              currentVersionIndex={currentVersionIndex}
+              currentVersionId={currentVersionId}
               versions={versions}
               setVersions={setVersions}
               extractKeywords={extractKeywords} // Pass extractKeywords as a prop
             />
             <CustomCodeEditor
-              code={versions[currentVersionIndex].code}
+              code={versions.find(version => version.id === currentVersionId)!.code}
               onApply={handleCodeInitialize}
-              description={versions[currentVersionIndex].description}
+              description={versions.find(version => version.id === currentVersionId)!.description}
               onUpdateDescription={handleUpdateDescription}
-              latestCode={versions[currentVersionIndex].latestCode}
+              latestCode={versions.find(version => version.id === currentVersionId)!.latestCode}
               setLatestCode={(code) => handleCodeInitialize(code)}
-              keywordTree={versions[currentVersionIndex].keywordTree}
-              wordselected={versions[currentVersionIndex].wordselected}
-              currentVersionIndex={currentVersionIndex}
+              keywordTree={versions.find(version => version.id === currentVersionId)!.keywordTree}
+              wordselected={versions.find(version => version.id === currentVersionId)!.wordselected}
+              currentVersionId={currentVersionId}
               versions={versions}
               setVersions={setVersions}
             />
-            <ResultViewer code={versions[currentVersionIndex].code} />
+            <ResultViewer code={versions.find(version => version.id === currentVersionId)!.code} />
           </>
         )}
       </div>
@@ -268,15 +300,15 @@ const App: React.FC = () => {
         <button className="purple-button" onClick={saveCurrentVersion}>Save</button>
         <button className="green-button" onClick={createNewVersion}>New</button>
         <button className="blue-button" onClick={copyCurrentVersion}>Copy</button>
-        {currentVersionIndex !== null && (
-          <button className="red-button" onClick={() => deleteVersion(versions[currentVersionIndex].id)}>Delete</button>
+        {currentVersionId !== null && (
+          <button className="red-button" onClick={() => deleteVersion(currentVersionId)}>Delete</button>
         )}
         <div className="version-buttons">
-          {versions.map((version, index) => (
+          {versions.map((version) => (
             <button
               key={version.id}
-              className={`version-button ${currentVersionIndex === index ? 'selected' : ''}`}
-              onClick={() => switchToVersion(index)}
+              className={`version-button ${currentVersionId === version.id ? 'selected' : ''}`}
+              onClick={() => switchToVersion(version.id)}
             >
               {version.id}
             </button>

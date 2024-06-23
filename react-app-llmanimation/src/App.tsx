@@ -113,12 +113,11 @@ const App: React.FC = () => {
     });
   };
 
-  const handleUpdateDescription = (newDescription: string) => {
-    if (currentVersionIndex === null) return;
+  const handleUpdateDescription = (newDescription: string, versionIndex: number) => {
     setVersions((prevVersions) => {
       const updatedVersions = [...prevVersions];
-      updatedVersions[currentVersionIndex] = {
-        ...updatedVersions[currentVersionIndex],
+      updatedVersions[versionIndex] = {
+        ...updatedVersions[versionIndex],
         description: newDescription,
         keywordTree: extractKeywords(newDescription),
       };
@@ -205,7 +204,20 @@ const App: React.FC = () => {
     setCurrentVersionIndex(versions.length);
   };
 
+  const copyCurrentVersion = () => {
+    if (currentVersionIndex === null) return;
+    const currentVersion = versions[currentVersionIndex];
+    const copiedVersion: Version = {
+      ...currentVersion,
+      id: `${currentVersion.id}-copy`,
+    };
+
+    setVersions([...versions, copiedVersion]);
+    setCurrentVersionIndex(versions.length);
+  };
+
   const switchToVersion = (index: number) => {
+    console.log('switch to version', index)
     console.log('check all versions', versions);
     const selectedVersion = versions[index];
     console.log('selected version', selectedVersion);
@@ -255,6 +267,7 @@ const App: React.FC = () => {
       <div className="version-controls">
         <button className="purple-button" onClick={saveCurrentVersion}>Save</button>
         <button className="green-button" onClick={createNewVersion}>New</button>
+        <button className="blue-button" onClick={copyCurrentVersion}>Copy</button>
         {currentVersionIndex !== null && (
           <button className="red-button" onClick={() => deleteVersion(versions[currentVersionIndex].id)}>Delete</button>
         )}

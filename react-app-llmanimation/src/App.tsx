@@ -15,6 +15,7 @@ const App: React.FC = () => {
     const baseVersion: Version = {
       id: 'init',
       description: "Adding sth...",
+      savedDescription: '',
       code: { html: '', css: '', js: '' },
       latestCode: { html: '', css: '', js: '' },
       keywordTree: [
@@ -163,6 +164,7 @@ const App: React.FC = () => {
           version.id === currentVersionId
             ? { ...version,
               description: versions[currentVersionId]!.description,
+              savedDescription: versions[currentVersionId]!. savedDescription,
               code: versions[currentVersionId]!.code,
               latestCode: versions[currentVersionId]!.latestCode,
               keywordTree: versions[currentVersionId]!.keywordTree,
@@ -182,6 +184,7 @@ const App: React.FC = () => {
           version.id === currentVersionId
             ? { ...version,
               description: versions[currentVersionId]!.description,
+              savedDescription: versions[currentVersionId]!. savedDescription,
               code: versions[currentVersionId]!.code,
               latestCode: versions[currentVersionId]!.latestCode,
               keywordTree: versions[currentVersionId]!.keywordTree,
@@ -203,6 +206,7 @@ const App: React.FC = () => {
     const newVersion: Version = {
       id: 'init'+uuidv4(),
       description: "Adding sth...",
+      savedDescription: '',
       code: { html: '', css: '', js: '' },
       latestCode: { html: '', css: '', js: '' },
       keywordTree: [
@@ -273,6 +277,7 @@ const App: React.FC = () => {
               latestCode={versions.find(version => version.id === currentVersionId)!.latestCode}
               setLatestCode={(code) => handleCodeInitialize(code)}
               description={versions.find(version => version.id === currentVersionId)!.description}
+              savedDescription={versions.find(version => version.id === currentVersionId)!.savedDescription}
               onWordSelected={handleWordSelected}
               currentVersionId={currentVersionId}
               versions={versions}
@@ -291,6 +296,7 @@ const App: React.FC = () => {
               currentVersionId={currentVersionId}
               versions={versions}
               setVersions={setVersions}
+              extractKeywords={extractKeywords} // Pass extractKeywords as a prop
             />
             <ResultViewer code={versions.find(version => version.id === currentVersionId)!.code} />
           </>

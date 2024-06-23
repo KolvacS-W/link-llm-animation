@@ -16,7 +16,8 @@ interface CodeEditorProps {
   wordselected: string;
   currentVersionId: string | null;
   setVersions: React.Dispatch<React.SetStateAction<Version[]>>;
-  versions: Version[]; // Add versions to the props
+  versions: Version[]; // Add versions to the props;
+  extractKeywords: (description: string) => KeywordTree[];
 }
 
 const API_KEY = '';
@@ -32,7 +33,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   wordselected,
   currentVersionId,
   setVersions,
-  versions // Receive versions as a prop
+  versions, // Receive versions as a prop
+  extractKeywords
 }) => {
   const [html, setHtml] = useState(code.html);
   const [css, setCss] = useState(code.css);
@@ -60,7 +62,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
 
   const handleApply = () => {
     onApply({ html, css, js });
-    processKeywordTree(keywordTree);
+    processKeywordTree(keywordTree, currentVersionId);
   };
 
   const updateHighlightPieces = () => {
@@ -81,8 +83,8 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     setPiecesToHighlightLevel2(level2Pieces);
   };
 
-  const processKeywordTree = async (keywordTree: KeywordTree[]) => {
-    const gptResults = await ParseCodeGPTCall();
+  const processKeywordTree = async (keywordTree: KeywordTree[], versionId: string) => {
+    const gptResults = await ParseCodeGPTCall(versionId);
     const codePieces = gptResults.split('$$$');
     const sublists = codePieces.map(piece => piece.split('@@@'));
 
@@ -130,10 +132,10 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     updateHighlightPieces();
   };
 
-  const ParseCodeGPTCall = async (): Promise<string> => {
-    setVersions(prevVersions => {
+  const ParseCodeGPTCall = async (versionId: string): Promise<string> => {
+    setVersions((prevVersions) => {
       const updatedVersions = prevVersions.map(version =>
-        version.id === currentVersionId
+        version.id === versionId
           ? { ...version, loading: true }
           : version
       );
@@ -243,15 +245,14 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
 
       const data = await response.json();
       const gptResponse = data.choices[0]?.message?.content;
-      console.log('code parse results', gptResponse);
       return gptResponse;
     } catch (error) {
       console.error("Error processing GPT request:", error);
       return '';
     } finally {
-      setVersions(prevVersions => {
+      setVersions((prevVersions) => {
         const updatedVersions = prevVersions.map(version =>
-          version.id === currentVersionId
+          version.id === versionId
             ? { ...version, loading: false }
             : version
         );
@@ -260,19 +261,25 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     }
   };
 
-  const handleUpdateCode = async () => {
-    onApply({ html, css, js }); // Save new updated code
-
-    setVersions(prevVersions => {
+  const handleUpdateCode = async (versionId: string) => {
+    // onApply({ html, css, js }, versionIndex); // Save new updated code
+    setVersions((prevVersions) => {
       const updatedVersions = prevVersions.map(version =>
-        version.id === currentVersionId
+        version.id === versionId
+          ? { ...version, code: { html, css, js } }
+          : version
+      );
+      return updatedVersions;
+    });  
+
+    setVersions((prevVersions) => {
+      const updatedVersions = prevVersions.map(version =>
+        version.id === versionId
           ? { ...version, loading: true }
           : version
       );
       return updatedVersions;
     });
-
-    console.log('check versions in handleUpdateCode', versions);
 
     const prompt = `Based on the following existing old description describing old code and the updated code, provide an updated description reflecting changes to the code. \\
     Old description: ${description}. \\
@@ -304,15 +311,29 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       const newDescriptionContent = data.choices[0]?.message?.content;
 
       if (newDescriptionContent) {
-        onUpdateDescription(newDescriptionContent, currentVersionId!);
-        processKeywordTree(keywordTree);
+        const updatedDescription = newDescriptionContent.replace('] {', ']{');
+        setVersions((prevVersions) => {
+          const updatedVersions = prevVersions.map(version => 
+            version.id === versionId 
+              ? { 
+                  ...version, 
+                  description: updatedDescription,
+                  savedDescription: updatedDescription,  
+                  keywordTree: extractKeywords(updatedDescription) 
+                }
+              : version
+          );
+          return updatedVersions;
+        });
+        // onUpdateDescription(newDescriptionContent, versionId);
+        processKeywordTree(keywordTree, versionId);
       }
     } catch (error) {
       console.error("Error processing update code request:", error);
     } finally {
-      setVersions(prevVersions => {
+      setVersions((prevVersions) => {
         const updatedVersions = prevVersions.map(version =>
-          version.id === currentVersionId
+          version.id === versionId
             ? { ...version, loading: false }
             : version
         );
@@ -320,6 +341,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       });
     }
   };
+
 
   const getFullText = (node: any) => {
     let text = '';
@@ -456,7 +478,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
       </div>
       <div className="button-group">
         <button className="blue-button" onClick={handleApply}>Parse and Run</button>
-        <button className="purple-button" onClick={handleUpdateCode}>Update Code</button>
+        <button className="purple-button" onClick={() => handleUpdateCode(currentVersionId || '')}>Update Code</button>
         <button 
           className="green-button" 
           onClick={() => setVersions(prevVersions => {

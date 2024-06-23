@@ -16,6 +16,7 @@ export interface KeywordNode {
   export interface Version {
     id: string; // Change id to string to store custom names
     description: string;
+    savedDescription: string;
     code: { html: string; css: string; js: string };
     latestCode: { html: string; css: string; js: string };
     keywordTree: KeywordTree[];

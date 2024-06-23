@@ -130,3 +130,89 @@ An [oak tree] {SVG element with trunk and expansive, symmetric branches} has a [
     </script>
 </body>
 </html>
+%%%
+A [cottage] {rect element with x: 50, y: 80, width: 100, height: 60, filled in white} perched on a [green mountain] {path element shaped to create a mountainous outline with coordinates "M0 140 L50 100 L100 140 L150 90 L200 140 L200 200 L0 200 Z", filled in #006400} under a [sky-blue background] {rect element covering the entire SVG's upper area with width="100%" and height="200", fill="#87CEEB"} boasts a [thatched roof] {polygon element with points "45,80 155,80 100,50", filled in #8b4513, resembling saddle brown} and sturdy [walls] {defined by the fill color of the rectangle forming the main body of the cottage} . A [chimney] {rect element with x: 130, y: 55, width: 15, height: 25, filled in #b22222, similar to firebrick red} protrudes from the roof, emitting [animated smoke] {three circle elements with ids "smoke1", "smoke2", and "smoke3", animated to ascend while varying in radius and opacity, simulating dispersing smoke into the air} .
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animated Cottage</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #87CEEB;
+        }
+        svg {
+            display: block;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <svg width="200" height="200">
+        <!-- Sky -->
+        <rect width="100%" height="200" fill="#87CEEB"></rect>
+        <!-- Green mountain -->
+        <path d="M0 140 L50 100 L100 140 L150 90 L200 140 L200 200 L0 200 Z" fill="#006400"></path>
+        <!-- Cottage body -->
+        <rect x="50" y="80" width="100" height="60" fill="white"></rect>
+        <!-- Thatched roof -->
+        <polygon points="45,80 155,80 100,50" fill="#8b4513"></polygon>
+        <!-- Chimney -->
+        <rect x="130" y="55" width="15" height="25" fill="#b22222"></rect>
+        <!-- Smoke animation -->
+        <circle id="smoke1" cx="138" cy="50" r="1" fill="grey"></circle>
+        <circle id="smoke2" cx="138" cy="50" r="1" fill="grey"></circle>
+        <circle id="smoke3" cx="138" cy="50" r="1" fill="grey"></circle>
+    </svg>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/2.0.2/anime.min.js"></script>
+    <script>
+        function animateSmoke() {
+            var timeline = anime.timeline({
+                loop: true,
+                direction: 'alternate'
+            });
+
+            timeline
+                .add({
+                    targets: '#smoke1',
+                    r: [{ value: 10 }, { value: 1 }],
+                    opacity: [{ value: 0.7, duration: 100 }, { value: 0, duration: 1000 }],
+                    translateY: -40,
+                    easing: 'easeOutCirc',
+                    duration: 2000
+                })
+                .add({
+                    targets: '#smoke2',
+                    r: [{ value: 12 }, { value: 1 }],
+                    opacity: [{ value: 0.7, duration: 100 }, { value: 0, duration: 1000 }],
+                    translateY: -60,
+                    translateX: 15,
+                    easing: 'easeOutCirc',
+                    duration: 2200,
+                    offset: '-=1800'
+                })
+                .add({
+                    targets: '#smoke3',
+                    r: [{ value: 8 }, { value: 1 }],
+                    opacity: [{ value: 0.7, duration: 100 }, { value: 0, duration: 1000 }],
+                    translateY: -50,
+                    translateX: -10,
+                    easing: 'easeInQuad',
+                    duration: 1800,
+                    offset: '-=1800'
+                });
+        }
+
+        animateSmoke();
+    </script>
+</body>
+</html>
+

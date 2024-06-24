@@ -3,6 +3,8 @@ import React, { useEffect } from 'react';
 import ReactLoading from 'react-loading';
 import ContentEditable from './ContentEditable';
 import { Version, KeywordTree } from '../types';
+import { useState } from 'react';
+
 
 
 interface DescriptionEditorProps {
@@ -41,6 +43,99 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       return updatedVersions;
     });
   }, [versions.find(version => version.id === currentVersionId)?.description]);
+
+  const handleParseDescription = async (versionId: string) => {
+    setVersions(prevVersions => {
+      const updatedVersions = prevVersions.map(version =>
+        version.id === versionId
+          ? { ...version, loading: true }
+          : version
+      );
+      return updatedVersions;
+    });
+  
+    const prompt = `Find the text pieces that is about specific code parameters (e.g, name, size, number, path, coordinates) from the given description of an animation program made by anime.js.
+                    and return a list of the found text pieces. make sure the returned text pieces are exactly from the description. Splift the text pieces with ///.
+                    Example description:
+                    A [cottage] {rect element with x: 50, y: 80, width: 100, height: 60, filled in white} perched on 
+                    a [green mountain] {path element shaped to create a mountainous outline with coordinates "M0 140 L50 100 L100 140 L150 90 L200 140 L200 200 L0 200 Z", filled in #006400} under 
+                    a [sky-blue background] {rect element covering the entire SVG's upper area with width="100%" and height="200", fill="#87CEEB"}.
+
+                    Example response:
+                    with x: 50, y: 80, width: 100, height: 60
+                    ///
+                    with coordinates "M0 140 L50 100 L100 140 L150 90 L200 140 L200 200 L0 200 Z"
+                    ///
+                    filled in #006400
+                    ///
+                     with width="100%" and height="200"
+                     ///
+                     fill="#87CEEB"
+                    
+                     Return pieces from this description: : ${version?.description}
+                    `;
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4-turbo",
+          messages: [{ role: "system", content: "You are a creative programmer." }, { role: "user", content: prompt }],
+        }),
+      });
+  
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+      console.log('response from handleParseDescription', content)
+  
+      if (content) {
+        const specificParamList = content.split('///').map((param: string) => param.trim());
+        setVersions(prevVersions => {
+          const updatedVersions = prevVersions.map(version =>
+            version.id === versionId
+              ? { ...version, specificParamList }
+              : version
+          );
+          return updatedVersions;
+        });
+      }
+    } catch (error) {
+      console.error("Error processing request:", error);
+    } finally {
+      setVersions(prevVersions => {
+        const updatedVersions = prevVersions.map(version =>
+          version.id === versionId
+            ? { ...version, loading: false }
+            : version
+        );
+        return updatedVersions;
+      });
+    }
+  };
+  
+  const handleSpecificParamRightClick = (text: string) => {
+    if (!currentVersionId) return;
+    const currentDescription = versions.find(version => version.id === currentVersionId)?.description || '';
+    const updatedDescription = currentDescription.replace(text, '');
+    setVersions(prevVersions => {
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? {
+              ...version,
+              description: updatedDescription,
+              specificParamList: version.specificParamList.filter(param => param !== text)
+            }
+          : version
+      );
+      return updatedVersions;
+    });
+    console.log('description updated by handleSpecificParamRightClick', versions)
+  };
+  
+  
   
   // functions for GPT calls. for async functions, versionId must be passed as a parameter to keep track of the right version
   const handleInitialize = async (versionId: string) => {
@@ -328,6 +423,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
               latestText: desc.trim(),
               hiddenInfo: [],
               initialValue:'',
+              specificParamList: [], // Added
+              paramCheckEnabled: false, // Added
             });
           });
           return updatedVersions;
@@ -375,9 +472,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       );
       return updatedVersions;
     });
-    console.log('right clickes, call toggledetails', word, versions.find(version => version.id === currentVersionId)?.showDetails)
   };
-
+  
   const handleTextChange = (html: string) => {
     if (!currentVersionId) return;
     const extractText = (node: ChildNode): string => {
@@ -395,16 +491,16 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       }
       return '';
     };
-
+  
     const doc = new DOMParser().parseFromString(html, 'text/html');
     let text = Array.from(doc.body.childNodes)
       .map(extractText)
       .join('')
-      .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
+      .replace(/\s+/g, ' ')
       .replace('\n', ' ')
-      .replace('] {', ']{') // Replace '] {' with ']{'
-      .trim(); // Trim any leading or trailing whitespace
-
+      .replace('] {', ']{')
+      .trim();
+  
     setVersions(prevVersions => {
       const updatedVersions = prevVersions.map(version =>
         version.id === currentVersionId
@@ -417,7 +513,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       return updatedVersions;
     });
   };
-
+  
   const handleTabPress = (value: string) => {
     if (!currentVersionId) return;
     const extractText = (node: ChildNode): string => {
@@ -435,16 +531,16 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       }
       return '';
     };
-
+  
     const doc = new DOMParser().parseFromString(value, 'text/html');
     let text = Array.from(doc.body.childNodes)
       .map(extractText)
       .join('')
-      .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
+      .replace(/\s+/g, ' ')
       .replace('\n', ' ')
-      .replace('] {', ']{') // Replace '] {' with ']{'
-      .trim(); // Trim any leading or trailing whitespace
-
+      .replace('] {', ']{')
+      .trim();
+  
     setVersions(prevVersions => {
       const updatedVersions = prevVersions.map(version =>
         version.id === currentVersionId
@@ -458,10 +554,11 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     });
     onApply(text.replace('] {', ']{'));
   };
-
+  
   const handleDoubleClick = (word: string) => {
     onWordSelected(word);
   };
+  
 
   return (
     <div className="description-editor">
@@ -475,6 +572,9 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
           onDoubleClick={handleDoubleClick}
           versions={versions}
           setVersions={setVersions}
+          paramCheckEnabled={version?.paramCheckEnabled || false} // Added
+          specificParamList={version?.specificParamList || []} // Added
+          onSpecificParamRightClick={handleSpecificParamRightClick} // Added
         />
       </div>
       <textarea
@@ -497,6 +597,21 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
         <button className="purple-button" onClick={() => handleInitialize(currentVersionId || '')}>Initialize Description</button>
         <button className="purple-button" onClick={() => updateDescriptionGPTCall(currentVersionId || '')}>Update Description</button>
       </div>
+      <div className="button-group">
+        <button className="blue-button" onClick={() => handleParseDescription(currentVersionId || '')}>Parse Description</button>
+        <button className="green-button" onClick={() => {
+          setVersions(prevVersions => {
+            const updatedVersions = prevVersions.map(version =>
+              version.id === currentVersionId
+                ? { ...version, paramCheckEnabled: !version.paramCheckEnabled }
+                : version
+            );
+            return updatedVersions;
+          });
+        }}>
+          {version?.paramCheckEnabled ? 'Disable Param Check' : 'Enable Param Check'}
+        </button>
+      </div>
       {loading && (
         <div className="loading-container">
           <ReactLoading type="spin" color="#007bff" height={50} width={50} />
@@ -504,6 +619,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       )}
     </div>
   );
+  
 };
 
 export default DescriptionEditor;

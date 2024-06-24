@@ -14,22 +14,25 @@ export interface KeywordNode {
   }
 
   export interface Version {
-    id: string; // Custom names for version IDs
+    id: string;
     description: string;
     savedDescription: string;
     code: { html: string; css: string; js: string };
     latestCode: { html: string; css: string; js: string };
     keywordTree: KeywordTree[];
     wordselected: string;
-    highlightEnabled: boolean; // To control if highlighting is enabled
-    loading: boolean; // To indicate loading state
-    piecesToHighlightLevel1: string[]; // Level 1 highlight pieces
-    piecesToHighlightLevel2: string[]; // Level 2 highlight pieces
-    showDetails: { [key: string]: boolean }; // To manage showing details for words
-    latestText: string; // To store the latest text
-    hiddenInfo: string[]; // To manage hidden information details
+    highlightEnabled: boolean;
+    loading: boolean;
+    piecesToHighlightLevel1: string[];
+    piecesToHighlightLevel2: string[];
+    showDetails: { [word: string]: boolean };
+    latestText: string;
+    hiddenInfo: string[];
     initialValue: string;
+    specificParamList: string[]; // Add this line
+    paramCheckEnabled: boolean;  // Add this line
   }
+  
   
   
   

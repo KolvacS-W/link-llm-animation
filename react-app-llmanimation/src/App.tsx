@@ -31,11 +31,14 @@ const App: React.FC = () => {
       latestText: '',
       hiddenInfo: [],
       initialValue:'',
+      specificParamList: [], // Added
+      paramCheckEnabled: false, // Added
     };
-
+  
     setVersions([baseVersion]);
     setCurrentVersionId(baseVersion.id);
   }, []);
+  
 
   const stopwords = new Set([
     'a', 'an', 'and', 'are', 'as', 'at', 'be', 'but', 'by', 'for', 'if', 'in', 'into', 'is', 'it', 
@@ -216,6 +219,8 @@ const App: React.FC = () => {
       latestText: '',
       hiddenInfo: [],
       initialValue:'',
+      specificParamList: [], // Added
+      paramCheckEnabled: false, // Added
     };
 
     setVersions([...versions, newVersion]);

@@ -5,12 +5,16 @@ interface ContentEditableProps {
   value: string;
   onChange: (value: string) => void;
   onRightClick: (word: string) => void;
-  onTabPress: (value: string) => void; // New prop for handling 'Tab' key press
-  onDoubleClick: (word: string) => void; // Add this prop
+  onTabPress: (value: string) => void;
+  onDoubleClick: (word: string) => void;
   currentVersionId: string | null;
   versions: Version[];
   setVersions: React.Dispatch<React.SetStateAction<Version[]>>;
+  paramCheckEnabled: boolean;
+  specificParamList: string[];
+  onSpecificParamRightClick: (word: string) => void;
 }
+
 
 // How description content editables work: 
 // whenever description updates: description (with [] and {})from specific version as prop; -> formatted to html (with all details saved) -> displayed
@@ -20,11 +24,11 @@ interface ContentEditableProps {
 
 
 // since all the user interactions here must happen when user is on correct page, we can just use currentversionId to access all version specific states
-const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRightClick, onTabPress, onDoubleClick, currentVersionId,  versions, setVersions}) => {
+const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRightClick, onTabPress, onDoubleClick, currentVersionId,  versions, setVersions,  paramCheckEnabled, specificParamList, onSpecificParamRightClick}) => {
   
   //after value (description) change, update initialValue (initialvalue is to get full hidden info)
   useEffect(() => {
-    // console.log('contenteditable-useeffect1', value)
+    console.log('contenteditable-useeffect', value)
     const formattedvalue = formatDescription(value);
     setVersions((prevVersions) => {
       const updatedVersions = prevVersions.map(version =>
@@ -63,14 +67,57 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
   };
 
   //user right click to show details
+  // const handleRightClick = (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
+  //   event.preventDefault();
+  //   const target = event.target as HTMLSpanElement;
+  //   const word = target.getAttribute("data-word");
+  //   console.log('right clicked', word, specificParamList)
+  //   if (word) {
+  //     const parentContent = target.innerHTML;
+  //     const regex = new RegExp(`\\[${word}\\]`);
+  
+  //     if (regex.test(parentContent)) {
+  //       console.log('clicked entity', parentContent)
+  //       onRightClick(word);
+  //     } else if (paramCheckEnabled && specificParamList.includes(word)) {
+  //       const textElement = specificParamList.find(param => param.includes(word));
+  //       console.log('clicked param', textElement)
+  //       if (textElement) {
+  //         onSpecificParamRightClick(textElement);
+  //       }
+  //     }
+  //   }
+  // };
+
   const handleRightClick = (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
     event.preventDefault();
     const target = event.target as HTMLSpanElement;
-    const word = target.getAttribute("data-word");
+    let word = target.getAttribute("data-word");
+    console.log('right clicked', word, specificParamList)
+
+    if (!word) {
+      const parent = target.closest('[data-word]');
+      if (parent) {
+        word = parent.getAttribute('data-word');
+      }
+    }
+  
     if (word) {
-      onRightClick(word); // right clicked, update detail config for each word (showdetails) for specific version, can just use currentversionId
+      if (paramCheckEnabled && specificParamList.some(param => word && param.includes(word))) {
+        const fullParam = specificParamList.find(param => word && param.includes(word));
+        console.log('clicked param', fullParam)
+        if (fullParam) {
+          onSpecificParamRightClick(fullParam);
+        }
+      } else if (word.startsWith('[') && word.endsWith(']')) {
+        onRightClick(word.slice(1, -1)); // Remove brackets
+      } else {
+        onRightClick(word);
+      }
     }
   };
+  
+  
 
   //user select a word
   const handleDoubleClick = (event: React.MouseEvent) => {
@@ -87,7 +134,6 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
   // format description from text to html with correct show/hidden details
   //while we do so, we save all the details first, since description will always have full details but formatted html text won't
   const formatDescription = (desc: string): string => {
-    console.log('format description called')
     const parts = desc.split(/(\[.*?\]\{.*?\})/g);
     const details: string[] = [];
     const formatted = parts.map((part, index) => {
@@ -95,31 +141,50 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
       if (match) {
         const word = match[1];
         const detail = match[2];
-        details.push(detail); // Save the details in the order they appear
+        details.push(detail);
         const isShown = versions.find(version => version.id === currentVersionId)?.showDetails[word];
+        const isParamHighlighted = paramCheckEnabled && specificParamList.includes(word);
+  
+        let formattedDetail = detail;
+        specificParamList.forEach(param => {
+          if (detail.includes(param)) {
+            formattedDetail = formattedDetail.replace(new RegExp(`\\b${param}\\b`, 'g'), `
+              <span style="color: green;" data-word="${param}">
+                ${param}
+              </span>
+            `);
+          }
+        });
+  
         return `
           <span>
-            <span style="color: red; cursor: pointer;" data-word="${word}">
+            <span style="color: ${isParamHighlighted ? 'green' : 'red'}; cursor: pointer;" data-word="${word}">
               [${word}]
             </span>
-            ${isShown ? `<span style="color: MediumVioletRed;">{${detail}}</span>` : ''}
+            ${isShown ? `<span style="color: MediumVioletRed;">{${formattedDetail}}</span>` : ''}
           </span>
         `;
       }
       return part;
     }).join('');
-    //we can just use currentversionId
+  
     setVersions((prevVersions) => {
       const updatedVersions = prevVersions.map(version =>
         version.id === currentVersionId
-          ? { ...version, hiddenInfo: details}
+          ? { ...version, hiddenInfo: details }
           : version
       );
       return updatedVersions;
-    });  
-    console.log('hidden info updated', versions.find(version => version.id === currentVersionId)?.hiddenInfo)
+    });
+  
     return formatted;
   };
+  
+  
+  
+  
+
+  
 
   const sanitizeText = (html: string): string => {
     const tempElement = document.createElement('div');
@@ -132,14 +197,15 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
   // we need to add back the hidden details
   const restoreDetails = (text: string): string => {
     const parts = text.split(/(\[.*?\])/g);
-    console.log('parts', parts)
+    console.log('parts', parts);
     let hiddenInfoIndex = 0;
     return parts.map((part, index) => {
       if (part.startsWith('[') && part.endsWith(']')) {
         const nextPart = parts[index + 1] || '';
-        const hasDetail = /\{.*?\}/.test(nextPart);
-        const hiddenInfo = versions.find(version => version.id === currentVersionId)?.hiddenInfo || []
-        console.log('restore detail', part, hasDetail, hiddenInfoIndex, hiddenInfo[hiddenInfoIndex])
+        const trimmedNextPart = nextPart.replace(/\s+/g, ' ').trim(); // Replace multiple whitespace with a single space and trim
+        const hasDetail = /\{\s*.*?\s*\}/.test(trimmedNextPart); // Check if trimmed nextPart contains {}
+        const hiddenInfo = versions.find(version => version.id === currentVersionId)?.hiddenInfo || [];
+        console.log('restore detail', part, hasDetail, hiddenInfoIndex, hiddenInfo[hiddenInfoIndex]);
         if (!hasDetail && hiddenInfoIndex < hiddenInfo.length) {
           return `${part}{${hiddenInfo[hiddenInfoIndex++]}}`;
         }
@@ -148,6 +214,8 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
       return part;
     }).join('');
   };
+  
+  
 
   return (
     <span

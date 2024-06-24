@@ -5,13 +5,19 @@ import rehypePrism from 'rehype-prism-plus';
 import rehypeRewrite from 'rehype-rewrite';
 import { Version, KeywordTree, KeywordNode } from '../types';
 
+//how code highlight work:
+// whenever the description is updated, the corresponding keyword tree will be updated for this version, to capture all the keywords
+// when we click parse or update a code, processKeywordTree() will be called
+// processKeywordTree() will segment code from GPT, then add code blocks for each keyword in keyword tree for this version
+// then it will call updateHighlightPieces(), accroding to which word is selected, to update two code lists to highlight: piecesToHighlightLevel1 and piecesToHighlightLevel2 for this specific version
+// the piecesToHighlightLevel1 and piecesToHighlightLevel2 will tell exactly which lines of code to highlight, they will be refered when the code is rendered
+// when rendering the code, is a line of code is in pieces to highlight, also +-5 lines of code near it would contain the selected word, then highlight it
+
 interface CodeEditorProps {
   code: { html: string; css: string; js: string };
   onApply: (code: { html: string; css: string; js: string }) => void;
   description: string;
-  onUpdateDescription: (newDescription: string, versionId: string) => void;
   latestCode: { html: string; css: string; js: string };
-  setLatestCode: (code: { html: string; css: string; js: string }) => void;
   keywordTree: KeywordTree[];
   wordselected: string;
   currentVersionId: string | null;
@@ -26,9 +32,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   code,
   onApply,
   description,
-  onUpdateDescription,
   latestCode,
-  setLatestCode,
   keywordTree,
   wordselected,
   currentVersionId,

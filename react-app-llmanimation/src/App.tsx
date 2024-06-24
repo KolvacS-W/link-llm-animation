@@ -30,6 +30,7 @@ const App: React.FC = () => {
       showDetails: {},
       latestText: '',
       hiddenInfo: [],
+      initialValue:'',
     };
 
     setVersions([baseVersion]);
@@ -118,17 +119,6 @@ const App: React.FC = () => {
     });
   };
 
-  const handleUpdateDescription = (newDescription: string) => {
-    if (currentVersionId === null) return;
-    setVersions((prevVersions) => {
-      const updatedVersions = prevVersions.map(version =>
-        version.id === currentVersionId
-          ? { ...version, description: newDescription, keywordTree: extractKeywords(newDescription) }
-          : version
-      );
-      return updatedVersions;
-    });
-  };
 
   const handleWordSelected = (word: string) => {
     if (currentVersionId === null) return;
@@ -142,6 +132,7 @@ const App: React.FC = () => {
     });
   };
 
+  //version controls
   const saveCurrentVersion = () => {
     const currentVersion = versions.find(version => version.id === currentVersionId);
     if (!currentVersion) return;
@@ -224,6 +215,7 @@ const App: React.FC = () => {
       showDetails: {},
       latestText: '',
       hiddenInfo: [],
+      initialValue:'',
     };
 
     setVersions([...versions, newVersion]);
@@ -279,11 +271,7 @@ const App: React.FC = () => {
           <>
             <DescriptionEditor
               onApply={handleDescriptionApply}
-              onInitialize={handleCodeInitialize}
               latestCode={versions.find(version => version.id === currentVersionId)!.latestCode}
-              setLatestCode={(code) => handleCodeInitialize(code)}
-              description={versions.find(version => version.id === currentVersionId)!.description}
-              savedDescription={versions.find(version => version.id === currentVersionId)!.savedDescription}
               onWordSelected={handleWordSelected}
               currentVersionId={currentVersionId}
               versions={versions}
@@ -294,9 +282,7 @@ const App: React.FC = () => {
               code={versions.find(version => version.id === currentVersionId)!.code}
               onApply={handleCodeInitialize}
               description={versions.find(version => version.id === currentVersionId)!.description}
-              onUpdateDescription={handleUpdateDescription}
               latestCode={versions.find(version => version.id === currentVersionId)!.latestCode}
-              setLatestCode={(code) => handleCodeInitialize(code)}
               keywordTree={versions.find(version => version.id === currentVersionId)!.keywordTree}
               wordselected={versions.find(version => version.id === currentVersionId)!.wordselected}
               currentVersionId={currentVersionId}

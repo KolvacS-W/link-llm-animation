@@ -28,6 +28,7 @@ export interface KeywordNode {
     showDetails: { [key: string]: boolean }; // To manage showing details for words
     latestText: string; // To store the latest text
     hiddenInfo: string[]; // To manage hidden information details
+    initialValue: string;
   }
   
   

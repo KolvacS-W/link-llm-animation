@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
+// Import necessary libraries and types
+import React, { useEffect } from 'react';
 import ReactLoading from 'react-loading';
 import ContentEditable from './ContentEditable';
 import { Version, KeywordTree } from '../types';
 
+
 interface DescriptionEditorProps {
   onApply: (description: string) => void;
-  onInitialize: (code: { html: string; css: string; js: string }) => void;
   latestCode: { html: string; css: string; js: string };
-  setLatestCode: (code: { html: string; css: string; js: string }) => void;
-  description: string;
-  savedDescription: string;
   onWordSelected: (word: string) => void;
   currentVersionId: string | null;
   versions: Version[];
@@ -21,30 +19,32 @@ const API_KEY = '';
 
 const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
   onApply,
-  onInitialize,
   latestCode,
-  setLatestCode,
-  description: propDescription,
-  savedDescription,
   onWordSelected,
   currentVersionId,
   versions,
   setVersions,
   extractKeywords,
 }) => {
-  const [description, setDescription] = useState(propDescription);
-  // const [savedDescription, setSavedDescription] = useState('');
-  const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
-  const [latestText, setLatestText] = useState(propDescription); // Initialize with propDescription
-  const [hiddenInfo, setHiddenInfo] = useState<string[]>([]); // State to store details in {}
+  const version = versions.find(version => version.id === currentVersionId);
+  const loading = version ? version.loading : false;
 
+  //update latestText whenever description changes
   useEffect(() => {
-    setDescription(propDescription);
-    setLatestText(propDescription); // Update latestText when description changes
-  }, [propDescription]);
-
-  const handleInitialize = async (versionId: string) => {
+    const currentDescription = versions.find(version => version.id === currentVersionId)?.description || '';
     setVersions((prevVersions) => {
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? { ...version, latestText: currentDescription }
+          : version
+      );
+      return updatedVersions;
+    });
+  }, [versions.find(version => version.id === currentVersionId)?.description]);
+  
+  // functions for GPT calls. for async functions, versionId must be passed as a parameter to keep track of the right version
+  const handleInitialize = async (versionId: string) => {
+    setVersions(prevVersions => {
       const updatedVersions = prevVersions.map(version =>
         version.id === versionId
           ? { ...version, loading: true }
@@ -59,7 +59,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     Donnot use any external elements like images or svg, create everything with code.\\
     Make sure to implement as much details from the description as possible. e.g., include elements (e.g., eyes, windows) of objects (e.g., fish, house), the features (e.g., shape, color) and the changes (e.g., movement, size, color)).
     Try to include css and javascript code in html like the code snippet.
-    Return response in this format: (Code:  \`\`\`html html code \`\`\`html, \`\`\`js javascript code, leave blank if none \`\`\`js, \`\`\`css css code, leave blank if none \`\`\`css; Explanation: explanations of the code). Instruction: ${description}`;
+    Return response in this format: (Code:  \`\`\`html html code \`\`\`html, \`\`\`js javascript code, leave blank if none \`\`\`js, \`\`\`css css code, leave blank if none \`\`\`css; Explanation: explanations of the code). Instruction: ${version?.description}`;
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -68,7 +68,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o",
+          model: "gpt-4",
           messages: [{ role: "system", content: "You are a creative programmer." }, { role: "user", content: prompt }],
         }),
       });
@@ -78,25 +78,20 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
 
       if (content) {
         const newCode = parseGPTResponse(content);
-        // setLatestCode(newCode, versionIndex);
-        // onInitialize(newCode, versionIndex);
-        console.log('updating code in handleinitialize', newCode.html)
-        if (versionId === null) return;
-        setVersions((prevVersions) => {
+        setVersions(prevVersions => {
           const updatedVersions = prevVersions.map(version =>
             version.id === versionId
               ? { ...version, code: newCode }
               : version
           );
           return updatedVersions;
-        });        
-        await handleSecondGPTCall(newCode, description, versionId);
+        });
+        await handleSecondGPTCall(newCode, version?.description || '', versionId);
       }
     } catch (error) {
       console.error("Error processing request:", error);
     } finally {
-      //finish loading
-      setVersions((prevVersions) => {
+      setVersions(prevVersions => {
         const updatedVersions = prevVersions.map(version =>
           version.id === versionId
             ? { ...version, loading: false }
@@ -104,6 +99,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
         );
         return updatedVersions;
       });
+      console.log('check versions after handlesecondgptcall', versions)
     }
   };
 
@@ -135,20 +131,19 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
 
       if (newDescriptionContent) {
         const updatedDescription = newDescriptionContent.replace('] {', ']{');
-        setVersions((prevVersions) => {
-          const updatedVersions = prevVersions.map(version => 
-            version.id === versionId 
-              ? { 
-                  ...version, 
+        setVersions(prevVersions => {
+          const updatedVersions = prevVersions.map(version =>
+            version.id === versionId
+              ? {
+                  ...version,
                   description: updatedDescription,
-                  savedDescription: updatedDescription,  
-                  keywordTree: extractKeywords(updatedDescription) 
+                  savedDescription: updatedDescription,
+                  keywordTree: extractKeywords(updatedDescription),
                 }
               : version
           );
           return updatedVersions;
         });
-        // onApply(updatedDescription, versionId);
       }
     } catch (error) {
       console.error("Error processing second request:", error);
@@ -156,7 +151,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
   };
 
   const updateDescriptionGPTCall = async (versionId: string) => {
-    setVersions((prevVersions) => {
+    setVersions(prevVersions => {
       const updatedVersions = prevVersions.map(version =>
         version.id === versionId
           ? { ...version, loading: true }
@@ -167,8 +162,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
 
     const prompt = `Based on the following old code and its old description and an updated description, provide an updated code. \\
     Old code: HTML: \`\`\`html${latestCode.html}\`\`\` CSS: \`\`\`css${latestCode.css}\`\`\` JS: \`\`\`js${latestCode.js}\`\`\` \\
-    Old Description: ${versions.find(version => version.id === versionId).savedDescription}. \\
-    New description: ${description}. \\
+    Old Description: ${versions.find(version => version.id === versionId)?.savedDescription}. \\
+    New description: ${version?.description}. \\
     Include updated code and the explanation of what changed in the updated description, and why your change in the code can match this description change.\\
     Still use anime.js and svg paths as backbone of the animation code as the old code.\\
     Use customizable svg paths for object movement. You can refer to old code to see example methods and code formats and refine it according to the new description.\\
@@ -193,22 +188,20 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       const content = data.choices[0]?.message?.content;
       if (content) {
         const newCode = parseGPTResponse(content);
-        // setLatestCode(newCode, versionIndex);
-        // onInitialize(newCode, versionIndex);
-        setVersions((prevVersions) => {
+        setVersions(prevVersions => {
           const updatedVersions = prevVersions.map(version =>
             version.id === versionId
               ? { ...version, code: newCode }
               : version
           );
           return updatedVersions;
-        });  
-        await GPTCallAfterupdateDescription(newCode, description, versionId);
+        });
+        await GPTCallAfterupdateDescription(newCode, version?.description || '', versionId);
       }
     } catch (error) {
       console.error("Error processing update description request:", error);
     } finally {
-      setVersions((prevVersions) => {
+      setVersions(prevVersions => {
         const updatedVersions = prevVersions.map(version =>
           version.id === versionId
             ? { ...version, loading: false }
@@ -246,19 +239,18 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
 
       if (newDescriptionContent) {
         const updatedDescription = newDescriptionContent.replace('] {', ']{');
-        setVersions((prevVersions) => {
-          const updatedVersions = prevVersions.map(version => 
-            version.id === versionId 
-              ? { 
-                  ...version, 
-                  description: updatedDescription, 
-                  keywordTree: extractKeywords(updatedDescription) 
+        setVersions(prevVersions => {
+          const updatedVersions = prevVersions.map(version =>
+            version.id === versionId
+              ? {
+                  ...version,
+                  description: updatedDescription,
+                  keywordTree: extractKeywords(updatedDescription),
                 }
               : version
           );
           return updatedVersions;
         });
-        // onApply(updatedDescription, versionIndex);
       }
     } catch (error) {
       console.error("Error processing second request:", error);
@@ -266,7 +258,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
   };
 
   const handleExtend = async (versionId: string) => {
-    setVersions((prevVersions) => {
+    setVersions(prevVersions => {
       const updatedVersions = prevVersions.map(version =>
         version.id === versionId
           ? { ...version, loading: true }
@@ -276,7 +268,6 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     });
 
     const baseVersionName = versionId;
-    // const newDescriptions: string[] = [];
 
     try {
       const prompt = `Help me extend a prompt and add more details. The prompt is for creating animations with anime.js. 
@@ -296,7 +287,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       ///
       a fish with a round body, whimsical patterns on its scales with small black eyes swimming from left to right in waving ocean.
 
-      Extend this prompt: ${description}`;
+      Extend this prompt: ${version?.description}`;
 
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -318,7 +309,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
 
       if (newDescriptionContent) {
         const newDescriptions = newDescriptionContent.split('///');
-        setVersions((prevVersions) => {
+        setVersions(prevVersions => {
           const updatedVersions = [...prevVersions];
           newDescriptions.forEach((desc: string, index: number) => {
             updatedVersions.push({
@@ -334,8 +325,9 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
               piecesToHighlightLevel1: [],
               piecesToHighlightLevel2: [],
               showDetails: {},
-              latestText: '',
+              latestText: desc.trim(),
               hiddenInfo: [],
+              initialValue:'',
             });
           });
           return updatedVersions;
@@ -344,7 +336,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     } catch (error) {
       console.error("Error processing extend request:", error);
     } finally {
-      setVersions((prevVersions) => {
+      setVersions(prevVersions => {
         const updatedVersions = prevVersions.map(version =>
           version.id === versionId
             ? { ...version, loading: false }
@@ -355,16 +347,10 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     }
   };
 
-
-  //add id as parameters
-  //just update things in specific versions
-  //then, trigger useeffect to render right things on right version page
-  //there should be no states other than version specific
-
   const parseGPTResponse = (response: string): { html: string; css: string; js: string } => {
     const htmlMatch = response.match(/```html([\s\S]*?)```/);
     const cssMatch = response.match(/```css([\s\S]*?)```/);
-    const jsMatch = response.match(/```js([\s\S]*?)```/);
+    const jsMatch = response.match(/```js([\\s\S]*?)```/);
 
     const html = htmlMatch ? htmlMatch[1].trim() : '';
     const css = cssMatch ? cssMatch[1].trim() : '';
@@ -373,12 +359,27 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     return { html, css, js };
   };
 
+
+  //functions for contenteditable props: handle user interaction for formatted description 
   const toggleDetails = (word: string) => {
-    setShowDetails(prev => ({ ...prev, [word]: !prev[word] }));
-    setDescription(latestText.replace('] {', ']{'));
+    if (!currentVersionId) return;
+    setVersions(prevVersions => {
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? {
+              ...version,
+              showDetails: { ...version.showDetails, [word]: !version.showDetails[word] },
+              description: version.latestText.replace('] {', ']{'),
+            }
+          : version
+      );
+      return updatedVersions;
+    });
+    console.log('right clickes, call toggledetails', word, versions.find(version => version.id === currentVersionId)?.showDetails)
   };
 
   const handleTextChange = (html: string) => {
+    if (!currentVersionId) return;
     const extractText = (node: ChildNode): string => {
       if (node.nodeType === Node.TEXT_NODE) {
         return node.textContent || '';
@@ -404,10 +405,21 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       .replace('] {', ']{') // Replace '] {' with ']{'
       .trim(); // Trim any leading or trailing whitespace
 
-    setLatestText(text.replace('] {', ']{')); // Save the newest text
+    setVersions(prevVersions => {
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? {
+              ...version,
+              latestText: text.replace('] {', ']{'),
+            }
+          : version
+      );
+      return updatedVersions;
+    });
   };
 
   const handleTabPress = (value: string) => {
+    if (!currentVersionId) return;
     const extractText = (node: ChildNode): string => {
       if (node.nodeType === Node.TEXT_NODE) {
         return node.textContent || '';
@@ -433,37 +445,51 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       .replace('] {', ']{') // Replace '] {' with ']{'
       .trim(); // Trim any leading or trailing whitespace
 
-    setDescription(text.replace('] {', ']{'));
+    setVersions(prevVersions => {
+      const updatedVersions = prevVersions.map(version =>
+        version.id === currentVersionId
+          ? {
+              ...version,
+              description: text.replace('] {', ']{'),
+            }
+          : version
+      );
+      return updatedVersions;
+    });
     onApply(text.replace('] {', ']{'));
-    console.log('tab press, save desc', description)
   };
 
   const handleDoubleClick = (word: string) => {
     onWordSelected(word);
   };
 
-
-
-  const version = versions.find(version => version.id === currentVersionId);
-  const loading = version ? version.loading : false;
-
   return (
     <div className="description-editor">
       <div className="content-editable-container">
         <ContentEditable
-          value={description}
+          value={version?.description || ''}
           onChange={handleTextChange}
           onRightClick={toggleDetails}
-          showDetails={showDetails}
           onTabPress={handleTabPress}
-          hiddenInfo={hiddenInfo}
-          setHiddenInfo={setHiddenInfo}
+          currentVersionId={currentVersionId}
           onDoubleClick={handleDoubleClick}
+          versions={versions}
+          setVersions={setVersions}
         />
       </div>
       <textarea
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        value={version?.description || ''}
+        onChange={(e) => {
+          if (!currentVersionId) return;
+          setVersions(prevVersions => {
+            const updatedVersions = prevVersions.map(version =>
+              version.id === currentVersionId
+                ? { ...version, description: e.target.value }
+                : version
+            );
+            return updatedVersions;
+          });
+        }}
         placeholder="Enter description here"
       />
       <div className="button-group">

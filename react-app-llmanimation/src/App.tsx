@@ -5,6 +5,8 @@ import ResultViewer from './components/ResultViewer';
 import './App.css';
 import { KeywordTree, Version } from './types';
 import { v4 as uuidv4 } from 'uuid';
+import ListGroup from 'react-bootstrap/ListGroup';
+
 
 const App: React.FC = () => {
   const [versions, setVersions] = useState<Version[]>([]);
@@ -50,26 +52,26 @@ const App: React.FC = () => {
     const regex = /\[(.*?)\]\{(.*?)\}/g;
     const level1Keywords = new Set<string>();
     const allSubKeywords = new Set<string>();
-
+  
     let match;
     while ((match = regex.exec(description)) !== null) {
-      const keyword = match[1].trim();
+      const keywordParts = match[1].trim().split(/\s+/).map(word => unpluralize(uncapitalize(word)));
+      keywordParts.forEach(keyword => level1Keywords.add(keyword));
+  
       const details = match[2].trim();
-      level1Keywords.add(keyword);
-
       const subKeywords = details
         .split(/[\s,()]+/)
-        .map(word => word.trim())
+        .map(word => unpluralize(uncapitalize(word.trim())))
         .filter(word => word && !stopwords.has(word));
-
+  
       subKeywords.forEach(subKeyword => allSubKeywords.add(subKeyword));
     }
-
+  
     const newKeywordTree: KeywordTree[] = [
       { level: 1, keywords: [] },
       { level: 2, keywords: [] },
     ];
-
+  
     level1Keywords.forEach(keyword => {
       newKeywordTree[0].keywords.push({
         keyword,
@@ -79,11 +81,11 @@ const App: React.FC = () => {
         parentKeyword: null
       });
     });
-
+  
     const uniqueSubKeywords = Array.from(allSubKeywords).filter(
       subKeyword => !level1Keywords.has(subKeyword)
     );
-
+  
     uniqueSubKeywords.forEach(subKeyword => {
       newKeywordTree[1].keywords.push({
         keyword: subKeyword,
@@ -93,9 +95,21 @@ const App: React.FC = () => {
         parentKeyword: null
       });
     });
-    console.log('keyword tree updated', currentVersionId, newKeywordTree)
+  
+    console.log('keyword tree updated', currentVersionId, newKeywordTree);
     return newKeywordTree;
   };
+  
+  // Dummy implementations of uncapitalize and unpluralize for demonstration purposes
+  function uncapitalize(word: string): string {
+    return word.charAt(0).toLowerCase() + word.slice(1);
+  }
+  
+  function unpluralize(word: string): string {
+    return word.endsWith('s') ? word.slice(0, -1) : word;
+  }
+  
+  
 
   const handleDescriptionApply = (newDescription: string) => {
     if (currentVersionId === null) return;
@@ -124,6 +138,7 @@ const App: React.FC = () => {
 
 
   const handleWordSelected = (word: string) => {
+    console.log('selected word', word)
     if (currentVersionId === null) return;
     setVersions((prevVersions) => {
       const updatedVersions = prevVersions.map(version =>
@@ -139,65 +154,71 @@ const App: React.FC = () => {
   const saveCurrentVersion = () => {
     const currentVersion = versions.find(version => version.id === currentVersionId);
     if (!currentVersion) return;
-
+  
     if (currentVersion.id.includes('init')) {
       const versionName = prompt("Enter version name:");
       if (!versionName) return;
-      //change version id first
-      setVersions((prevVersions) => {
+  
+      // Change version id first
+      setVersions(prevVersions => {
         const updatedVersions = prevVersions.map(version =>
           version.id === currentVersionId
-            ? { ...version,
-              id: versionName,
+            ? { ...version, id: versionName }
+            : version
+        );
+        return updatedVersions;
+      });
+  
+      // Update currentVersionId
+      setCurrentVersionId(versionName);
+  
+      // Update version contents
+      setVersions(prevVersions => {
+        const updatedVersions = prevVersions.map(version =>
+          version.id === versionName
+            ? {
+                ...version,
+                description: currentVersion.description,
+                savedOldDescription: currentVersion.savedOldDescription,
+                code: currentVersion.code,
+                savedOldCode: currentVersion.savedOldCode,
+                keywordTree: currentVersion.keywordTree,
+                wordselected: currentVersion.wordselected,
+                highlightEnabled: currentVersion.highlightEnabled,
+                loading: currentVersion.loading,
+                piecesToHighlightLevel1: currentVersion.piecesToHighlightLevel1,
+                piecesToHighlightLevel2: currentVersion.piecesToHighlightLevel2,
               }
             : version
         );
         return updatedVersions;
       });
-      setCurrentVersionId(versionName);
-      //update version contents
-      setVersions((prevVersions) => {
-        const updatedVersions = prevVersions.map(version =>
-          version.id === currentVersionId
-            ? { ...version,
-              description: versions[currentVersionId]!.description,
-              savedOldDescription: versions[currentVersionId]!. savedOldDescription,
-              code: versions[currentVersionId]!.code,
-              savedOldCode: versions[currentVersionId]!.savedOldCode,
-              keywordTree: versions[currentVersionId]!.keywordTree,
-              wordselected: versions[currentVersionId]!.wordselected,
-              highlightEnabled: versions[currentVersionId]!.highlightEnabled,
-              loading: versions[currentVersionId]!.loading,
-              piecesToHighlightLevel1: versions[currentVersionId]!.piecesToHighlightLevel1,
-              piecesToHighlightLevel2: versions[currentVersionId]!.piecesToHighlightLevel2,
-            }
-            : version
-        );
-        return updatedVersions;
-      });
     } else {
-      setVersions((prevVersions) => {
+      setVersions(prevVersions => {
         const updatedVersions = prevVersions.map(version =>
           version.id === currentVersionId
-            ? { ...version,
-              description: versions[currentVersionId]!.description,
-              savedOldDescription: versions[currentVersionId]!. savedOldDescription,
-              code: versions[currentVersionId]!.code,
-              savedOldCode: versions[currentVersionId]!.savedOldCode,
-              keywordTree: versions[currentVersionId]!.keywordTree,
-              wordselected: versions[currentVersionId]!.wordselected,
-              highlightEnabled: versions[currentVersionId]!.highlightEnabled,
-              loading: versions[currentVersionId]!.loading,
-              piecesToHighlightLevel1: versions[currentVersionId]!.piecesToHighlightLevel1,
-              piecesToHighlightLevel2: versions[currentVersionId]!.piecesToHighlightLevel2,
-            }
+            ? {
+                ...version,
+                description: currentVersion.description,
+                savedOldDescription: currentVersion.savedOldDescription,
+                code: currentVersion.code,
+                savedOldCode: currentVersion.savedOldCode,
+                keywordTree: currentVersion.keywordTree,
+                wordselected: currentVersion.wordselected,
+                highlightEnabled: currentVersion.highlightEnabled,
+                loading: currentVersion.loading,
+                piecesToHighlightLevel1: currentVersion.piecesToHighlightLevel1,
+                piecesToHighlightLevel2: currentVersion.piecesToHighlightLevel2,
+              }
             : version
         );
         return updatedVersions;
       });
     }
+  
     console.log('check all versions', versions);
   };
+  
 
   const createNewVersion = () => {
     const newVersion: Version = {
@@ -269,6 +290,22 @@ const App: React.FC = () => {
     // createNewVersion();
   };
 
+  const createTestVersion = () => {
+    const currentVersion = versions.find(version => version.id === currentVersionId);
+    if (!currentVersion) return;
+  
+    const newId = `${currentVersion.id}-test`;
+    const prefix = 'In the description, words in [] are important entities, and following entities are detailed hints in {} to specify how to create these entities and animations. '
+    const newVersion: Version = {
+      ...currentVersion,
+      id: newId,
+      description: prefix +currentVersion.description
+    };
+  
+    setVersions([...versions, newVersion]);
+    setCurrentVersionId(newVersion.id);
+  };
+  
   return (
     <div className="App">
       <div className="editor-section">
@@ -300,11 +337,12 @@ const App: React.FC = () => {
         )}
       </div>
       <div className="version-controls">
+        <button className="test-button" onClick={createTestVersion}>Test</button>
         <button className="purple-button" onClick={saveCurrentVersion}>Save</button>
         <button className="green-button" onClick={createNewVersion}>New</button>
-        <button className="blue-button" onClick={copyCurrentVersion}>Copy</button>
+        <button className="green-button" onClick={copyCurrentVersion}>Copy</button>
         {currentVersionId !== null && (
-          <button className="red-button" onClick={() => deleteVersion(currentVersionId)}>Delete</button>
+          <button className="delete-button" onClick={() => deleteVersion(currentVersionId)}>Delete</button>
         )}
         <div className="version-buttons">
           {versions.map((version) => (
@@ -317,9 +355,21 @@ const App: React.FC = () => {
             </button>
           ))}
         </div>
+        {/* <ListGroup as="ul" className="list-group version-list">
+          {versions.map(version => (
+            <ListGroup.Item as="li"
+              key={version.id}
+              className={`list-group-item ${currentVersionId === version.id ? 'active' : ''}`}
+              onClick={() => switchToVersion(version.id)}
+            >
+              {version.id}
+            </ListGroup.Item>
+          ))}
+        </ListGroup> */}
       </div>
     </div>
   );
+  
 }
 
 export default App;

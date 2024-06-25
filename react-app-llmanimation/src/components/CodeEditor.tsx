@@ -64,6 +64,20 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     }
   }, [keywordTree, wordselected, highlightEnabled, currentVersionId]);
 
+  //save the last state of current version when it updates
+  const saveVersionToHistory = (currentVersionId: string) => {
+    setVersions(prevVersions => {
+      const updatedVersions = prevVersions.map(version => {
+        if (version.id === currentVersionId) {
+          const historyVersion = { ...version, id: `${currentVersionId}-history` };
+          return { ...version, history: historyVersion };
+        }
+        return version;
+      });
+      return updatedVersions;
+    });
+  };
+
   const handleParseRun = (versionId: string) => {
     onApply({ html, css, js });
     processKeywordTree(versionId);
@@ -130,16 +144,16 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
 
         if (tree.level === 1) {
           codePieces.forEach(piece => {
-            if (piece.includes(keywordNode.keyword)) {
+            if (piece.toLowerCase().includes(keywordNode.keyword.toLowerCase())) {
               keywordNode.codeBlock += piece;
             }
           });
         }
-
+  
         if (tree.level === 2) {
           sublists.forEach(sublist => {
             sublist.forEach(subpiece => {
-              if (subpiece.includes(keywordNode.keyword)) {
+              if (subpiece.toLowerCase().includes(keywordNode.keyword.toLowerCase())) {
                 keywordNode.codeBlock += subpiece;
               }
             });
@@ -165,6 +179,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   const ParseCodeGPTCall = async (versionId: string): Promise<string> => {
+    saveVersionToHistory(versionId);
     setVersions((prevVersions) => {
       const updatedVersions = prevVersions.map(version =>
         version.id === versionId
@@ -294,6 +309,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   const handleUpdateCode = async (versionId: string) => {
+    saveVersionToHistory(versionId);
     if (!versionId) return;
 
     setVersions((prevVersions) => {

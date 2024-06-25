@@ -31,6 +31,7 @@ export interface KeywordNode {
     formatDescriptionHtml: string; // descriptiontext with html format
     specificParamList: string[]; // 
     paramCheckEnabled: boolean;  // 
+    history?: Version;  // Added for undo functionality
   }
   
   

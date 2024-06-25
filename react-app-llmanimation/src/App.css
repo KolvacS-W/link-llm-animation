@@ -112,15 +112,20 @@ iframe {
   margin-bottom: 10px;
 } */
 
-.purple-button, .blue-button {
+.test-button, purple-button, .blue-button {
   padding: 10px 20px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
 }
 
+.test-button {
+  background-color: #d8b2c5;
+  color: white;
+}
+
 .purple-button {
-  background-color: #6a0dad;
+  background-color: #9450c5;
   color: white;
 }
 
@@ -204,11 +209,16 @@ textarea {
 
 
 
-.red-button {
-  background-color: rgb(232, 138, 138);
+.delete-button {
+  background-color: rgb(204, 91, 89);
   color: white;
 }
 
+
+/* .green-button {
+  background-color: rgb(255, 255, 255);
+  color: rgb(0, 0, 0);
+} */
 
 
 

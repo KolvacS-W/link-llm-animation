@@ -44,7 +44,23 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     });
   }, [versions.find(version => version.id === currentVersionId)?.description]);
 
+  //save the last state of current version when it updates
+  const saveVersionToHistory = (currentVersionId: string) => {
+    setVersions(prevVersions => {
+      const updatedVersions = prevVersions.map(version => {
+        if (version.id === currentVersionId) {
+          const historyVersion = { ...version, id: `${currentVersionId}-history` };
+          return { ...version, history: historyVersion };
+        }
+        return version;
+      });
+      return updatedVersions;
+    });
+  };
+  
+
   const handleParseDescription = async (versionId: string) => {
+    saveVersionToHistory(versionId);
     setVersions(prevVersions => {
       const updatedVersions = prevVersions.map(version =>
         version.id === versionId
@@ -139,6 +155,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
   
   // functions for GPT calls. for async functions, versionId must be passed as a parameter to keep track of the right version
   const handleInitialize = async (versionId: string) => {
+    saveVersionToHistory(versionId);
     setVersions(prevVersions => {
       const updatedVersions = prevVersions.map(version =>
         version.id === versionId
@@ -232,7 +249,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
               ? {
                   ...version,
                   description: updatedDescription,
-                  savedOldDescription: updatedDescription,
+                  savedDescription: updatedDescription,
                   keywordTree: extractKeywords(updatedDescription),
                 }
               : version
@@ -246,6 +263,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
   };
 
   const updateDescriptionGPTCall = async (versionId: string) => {
+    saveVersionToHistory(versionId);
     setVersions(prevVersions => {
       const updatedVersions = prevVersions.map(version =>
         version.id === versionId
@@ -264,7 +282,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     Use customizable svg paths for object movement. You can refer to old code to see example methods and code formats and refine it according to the new description.\\
     Donnot use any external elements like images or svg, create everything with code.\\
     Try to include css and javascript code in html like the old code.\\
-    Try to keep the new code as close as old one as possible, only change the necessary parts that is updated by new description.\\
+    Try to modify as little code as possible, keep as much original objects and structure as possible, only change the necessary parts that is updated by new description.\\
     Return response in this format: (Code:  \`\`\`html html code \`\`\`html, \`\`\`js javascript code, leave blank if none \`\`\`js, \`\`\`css css code, leave blank if none \`\`\`css; Explanation: explanation content)`;
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -315,6 +333,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     Example description:
     [fishes]{#fish1 and #fish2, orange-colored, marine creatures depicted using polygonal SVG elements} shaped as [complex polygons]{polygonal shapes simulating the bodily form of fish with points configured in specific coordinates} are [swimming]{both #fish1 and #fish2 are animated to dynamically move along their designated paths:#path1 and #path2, predefined SVG paths depicted as smooth wavy lines} across an [ocean]{visualized by a large rectangular area filled with a vertical blue gradient, representing water}\\
     Just as the old description, make sure it is made of coherent sentences with words other than entities and details.\\
+    Try to keep the updated description as close to the old description as possible, only change necessary parts to fit the code better.\\
     Include only the updated description in the response.`;
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -556,10 +575,34 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
   };
   
   const handleDoubleClick = (word: string) => {
-    onWordSelected(word);
+    const processedWord = unpluralize(uncapitalize(word.trim()));
+    onWordSelected(processedWord);
   };
   
+  // Dummy implementations of uncapitalize and unpluralize for demonstration purposes
+  function uncapitalize(word: string): string {
+    return word.charAt(0).toLowerCase() + word.slice(1);
+  }
+  
+  function unpluralize(word: string): string {
+    return word.endsWith('s') ? word.slice(0, -1) : word;
+  }
 
+  const handleUndo = () => {
+    if (!currentVersionId) return;
+    
+    setVersions(prevVersions => {
+      const updatedVersions = prevVersions.map(version => {
+        if (version.id === currentVersionId && version.history) {
+          return { ...version.history, id: currentVersionId };
+        }
+        console.log('undo, but this version has no history yet')
+        return version;
+      }).filter(version => !version.id.endsWith('-history'));
+      return updatedVersions;
+    });
+  };
+  
   return (
     <div className="description-editor">
       <div className="content-editable-container">
@@ -594,8 +637,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       />
       <div className="button-group">
         <button className="purple-button" onClick={() => handleExtend(currentVersionId || '')}>Extend</button>
-        <button className="purple-button" onClick={() => handleInitialize(currentVersionId || '')}>Initialize Description</button>
-        <button className="purple-button" onClick={() => updateDescriptionGPTCall(currentVersionId || '')}>Update Description</button>
+        <button className="purple-button" onClick={() => handleInitialize(currentVersionId || '')}>Initialize</button>
+        <button className="purple-button" onClick={() => updateDescriptionGPTCall(currentVersionId || '')}>Update</button>
       </div>
       <div className="button-group">
         <button className="blue-button" onClick={() => handleParseDescription(currentVersionId || '')}>Parse Description</button>
@@ -611,6 +654,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
         }}>
           {version?.paramCheckEnabled ? 'Disable Param Check' : 'Enable Param Check'}
         </button>
+        <button className="red-button" onClick={handleUndo}>Undo</button>
       </div>
       {loading && (
         <div className="loading-container">

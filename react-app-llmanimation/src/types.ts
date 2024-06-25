@@ -16,9 +16,9 @@ export interface KeywordNode {
   export interface Version {
     id: string;
     description: string;
-    savedDescription: string;
+    savedOldDescription: string; // to track the old description to call descriptionupdate
     code: { html: string; css: string; js: string };
-    latestCode: { html: string; css: string; js: string };
+    savedOldCode: { html: string; css: string; js: string }; // to track the old code to call codeupdate
     keywordTree: KeywordTree[];
     wordselected: string;
     highlightEnabled: boolean;
@@ -26,11 +26,11 @@ export interface KeywordNode {
     piecesToHighlightLevel1: string[];
     piecesToHighlightLevel2: string[];
     showDetails: { [word: string]: boolean };
-    latestText: string;
+    latestDescriptionText: string; // to track latest description when being edited
     hiddenInfo: string[];
-    initialValue: string;
-    specificParamList: string[]; // Add this line
-    paramCheckEnabled: boolean;  // Add this line
+    formatDescriptionHtml: string; // descriptiontext with html format
+    specificParamList: string[]; // 
+    paramCheckEnabled: boolean;  // 
   }
   
   

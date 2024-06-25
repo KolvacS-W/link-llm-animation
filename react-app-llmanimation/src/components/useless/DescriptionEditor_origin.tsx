@@ -6,10 +6,10 @@ import { Version, KeywordTree } from '../types';
 interface DescriptionEditorProps {
   onApply: (description: string) => void;
   onInitialize: (code: { html: string; css: string; js: string }) => void;
-  latestCode: { html: string; css: string; js: string };
-  setLatestCode: (code: { html: string; css: string; js: string }) => void;
+  savedOldCode: { html: string; css: string; js: string };
+  setsavedOldCode: (code: { html: string; css: string; js: string }) => void;
   description: string;
-  savedDescription: string;
+  savedOldDescription: string;
   onWordSelected: (word: string) => void;
   currentVersionId: string | null;
   versions: Version[];
@@ -22,10 +22,10 @@ const API_KEY = '';
 const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
   onApply,
   onInitialize,
-  latestCode,
-  setLatestCode,
+  savedOldCode,
+  setsavedOldCode,
   description: propDescription,
-  savedDescription,
+  savedOldDescription,
   onWordSelected,
   currentVersionId,
   versions,
@@ -33,14 +33,14 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
   extractKeywords,
 }) => {
   const [description, setDescription] = useState(propDescription);
-  // const [savedDescription, setSavedDescription] = useState('');
+  // const [savedOldDescription, setsavedOldDescription] = useState('');
   const [showDetails, setShowDetails] = useState<{ [key: string]: boolean }>({});
-  const [latestText, setLatestText] = useState(propDescription); // Initialize with propDescription
+  const [latestDescriptionText, setlatestDescriptionText] = useState(propDescription); // Initialize with propDescription
   const [hiddenInfo, setHiddenInfo] = useState<string[]>([]); // State to store details in {}
 
   useEffect(() => {
     setDescription(propDescription);
-    setLatestText(propDescription); // Update latestText when description changes
+    setlatestDescriptionText(propDescription); // Update latestDescriptionText when description changes
   }, [propDescription]);
 
   const handleInitialize = async (versionId: string) => {
@@ -78,7 +78,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
 
       if (content) {
         const newCode = parseGPTResponse(content);
-        // setLatestCode(newCode, versionIndex);
+        // setsavedOldCode(newCode, versionIndex);
         // onInitialize(newCode, versionIndex);
         console.log('updating code in handleinitialize', newCode.html)
         if (versionId === null) return;
@@ -141,7 +141,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
               ? { 
                   ...version, 
                   description: updatedDescription,
-                  savedDescription: updatedDescription,  
+                  savedOldDescription: updatedDescription,  
                   keywordTree: extractKeywords(updatedDescription) 
                 }
               : version
@@ -166,8 +166,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     });
 
     const prompt = `Based on the following old code and its old description and an updated description, provide an updated code. \\
-    Old code: HTML: \`\`\`html${latestCode.html}\`\`\` CSS: \`\`\`css${latestCode.css}\`\`\` JS: \`\`\`js${latestCode.js}\`\`\` \\
-    Old Description: ${versions.find(version => version.id === versionId)?.savedDescription}. \\
+    Old code: HTML: \`\`\`html${savedOldCode.html}\`\`\` CSS: \`\`\`css${savedOldCode.css}\`\`\` JS: \`\`\`js${savedOldCode.js}\`\`\` \\
+    Old Description: ${versions.find(version => version.id === versionId)?.savedOldDescription}. \\
     New description: ${description}. \\
     Include updated code and the explanation of what changed in the updated description, and why your change in the code can match this description change.\\
     Still use anime.js and svg paths as backbone of the animation code as the old code.\\
@@ -193,7 +193,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       const content = data.choices[0]?.message?.content;
       if (content) {
         const newCode = parseGPTResponse(content);
-        // setLatestCode(newCode, versionIndex);
+        // setsavedOldCode(newCode, versionIndex);
         // onInitialize(newCode, versionIndex);
         setVersions((prevVersions) => {
           const updatedVersions = prevVersions.map(version =>
@@ -324,9 +324,9 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
             updatedVersions.push({
               id: `${baseVersionName} extended ${index + 1}`,
               description: desc.trim(),
-              savedDescription: '',
+              savedOldDescription: '',
               code: { html: '', css: '', js: '' },
-              latestCode: { html: '', css: '', js: '' },
+              savedOldCode: { html: '', css: '', js: '' },
               keywordTree: extractKeywords(desc),
               wordselected: 'ocean',
               highlightEnabled: false,
@@ -334,9 +334,9 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
               piecesToHighlightLevel1: [],
               piecesToHighlightLevel2: [],
               showDetails: {},
-              latestText: '',
+              latestDescriptionText: '',
               hiddenInfo: [],
-              initialValue:'',
+              formatDescriptionHtml:'',
             });
           });
           return updatedVersions;
@@ -376,7 +376,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
 
   const toggleDetails = (word: string) => {
     setShowDetails(prev => ({ ...prev, [word]: !prev[word] }));
-    setDescription(latestText.replace('] {', ']{'));
+    setDescription(latestDescriptionText.replace('] {', ']{'));
   };
 
   const handleTextChange = (html: string) => {
@@ -405,7 +405,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       .replace('] {', ']{') // Replace '] {' with ']{'
       .trim(); // Trim any leading or trailing whitespace
 
-    setLatestText(text.replace('] {', ']{')); // Save the newest text
+    setlatestDescriptionText(text.replace('] {', ']{')); // Save the newest text
   };
 
   const handleTabPress = (value: string) => {

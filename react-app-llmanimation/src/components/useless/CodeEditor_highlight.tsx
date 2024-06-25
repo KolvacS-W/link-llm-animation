@@ -10,14 +10,14 @@ interface CodeEditorProps {
   onApply: (code: { html: string; css: string; js: string }) => void;
   description: string;
   onUpdateDescription: (newDescription: string) => void;
-  latestCode: { html: string; css: string; js: string };
-  setLatestCode: (code: { html: string; css: string; js: string }) => void;
+  savedOldCode: { html: string; css: string; js: string };
+  setsavedOldCode: (code: { html: string; css: string; js: string }) => void;
   keywordTree: KeywordTree[]; // Add keywordTree to props
 }
 
 const API_KEY = '';
 
-const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, description, onUpdateDescription, latestCode, setLatestCode, keywordTree }) => {
+const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, description, onUpdateDescription, savedOldCode, setsavedOldCode, keywordTree }) => {
   const [html, setHtml] = useState(code.html);
   const [css, setCss] = useState(code.css);
   const [js, setJs] = useState(code.js);
@@ -254,7 +254,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({ code, onApply, descriptio
 
     const prompt = `Based on the following existing old description describing old code and the updated code, provide an updated description reflecting changes to the code. \\
     Old description: ${description}. \\
-    Old code: HTML: \`\`\`html${latestCode.html}\`\`\` CSS: \`\`\`css${latestCode.css}\`\`\` JS: \`\`\`js${latestCode.js}\`\`\` \\
+    Old code: HTML: \`\`\`html${savedOldCode.html}\`\`\` CSS: \`\`\`css${savedOldCode.css}\`\`\` JS: \`\`\`js${savedOldCode.js}\`\`\` \\
     Updated code: HTML: \`\`\`html${html}\`\`\` CSS: \`\`\`css${css}\`\`\` JS: \`\`\`js${js}\`\`\` \\
     Description format:\\
     xxxxx[entity1]{detail for entity1}xxxx[entity2]{detail for entity2}... \\ 

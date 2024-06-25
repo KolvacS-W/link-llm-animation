@@ -15,9 +15,9 @@ const App: React.FC = () => {
     const baseVersion: Version = {
       id: 'init',
       description: "Adding sth...",
-      savedDescription: '',
+      savedOldDescription: '', 
       code: { html: '', css: '', js: '' },
-      latestCode: { html: '', css: '', js: '' },
+      savedOldCode: { html: '', css: '', js: '' },
       keywordTree: [
         { level: 1, keywords: [] },
         { level: 2, keywords: [] },
@@ -28,9 +28,9 @@ const App: React.FC = () => {
       piecesToHighlightLevel1: [],
       piecesToHighlightLevel2: [],
       showDetails: {},
-      latestText: '',
+      latestDescriptionText: '', 
       hiddenInfo: [],
-      initialValue:'',
+      formatDescriptionHtml:'',
       specificParamList: [], // Added
       paramCheckEnabled: false, // Added
     };
@@ -161,9 +161,9 @@ const App: React.FC = () => {
           version.id === currentVersionId
             ? { ...version,
               description: versions[currentVersionId]!.description,
-              savedDescription: versions[currentVersionId]!. savedDescription,
+              savedOldDescription: versions[currentVersionId]!. savedOldDescription,
               code: versions[currentVersionId]!.code,
-              latestCode: versions[currentVersionId]!.latestCode,
+              savedOldCode: versions[currentVersionId]!.savedOldCode,
               keywordTree: versions[currentVersionId]!.keywordTree,
               wordselected: versions[currentVersionId]!.wordselected,
               highlightEnabled: versions[currentVersionId]!.highlightEnabled,
@@ -181,9 +181,9 @@ const App: React.FC = () => {
           version.id === currentVersionId
             ? { ...version,
               description: versions[currentVersionId]!.description,
-              savedDescription: versions[currentVersionId]!. savedDescription,
+              savedOldDescription: versions[currentVersionId]!. savedOldDescription,
               code: versions[currentVersionId]!.code,
-              latestCode: versions[currentVersionId]!.latestCode,
+              savedOldCode: versions[currentVersionId]!.savedOldCode,
               keywordTree: versions[currentVersionId]!.keywordTree,
               wordselected: versions[currentVersionId]!.wordselected,
               highlightEnabled: versions[currentVersionId]!.highlightEnabled,
@@ -203,9 +203,9 @@ const App: React.FC = () => {
     const newVersion: Version = {
       id: 'init'+uuidv4(),
       description: "Adding sth...",
-      savedDescription: '',
+      savedOldDescription: '',
       code: { html: '', css: '', js: '' },
-      latestCode: { html: '', css: '', js: '' },
+      savedOldCode: { html: '', css: '', js: '' },
       keywordTree: [
         { level: 1, keywords: [] },
         { level: 2, keywords: [] },
@@ -216,9 +216,9 @@ const App: React.FC = () => {
       piecesToHighlightLevel1: [],
       piecesToHighlightLevel2: [],
       showDetails: {},
-      latestText: '',
+      latestDescriptionText: '',
       hiddenInfo: [],
-      initialValue:'',
+      formatDescriptionHtml:'',
       specificParamList: [], // Added
       paramCheckEnabled: false, // Added
     };
@@ -276,7 +276,7 @@ const App: React.FC = () => {
           <>
             <DescriptionEditor
               onApply={handleDescriptionApply}
-              latestCode={versions.find(version => version.id === currentVersionId)!.latestCode}
+              savedOldCode={versions.find(version => version.id === currentVersionId)!.savedOldCode}
               onWordSelected={handleWordSelected}
               currentVersionId={currentVersionId}
               versions={versions}
@@ -287,7 +287,7 @@ const App: React.FC = () => {
               code={versions.find(version => version.id === currentVersionId)!.code}
               onApply={handleCodeInitialize}
               description={versions.find(version => version.id === currentVersionId)!.description}
-              latestCode={versions.find(version => version.id === currentVersionId)!.latestCode}
+              savedOldCode={versions.find(version => version.id === currentVersionId)!.savedOldCode}
               keywordTree={versions.find(version => version.id === currentVersionId)!.keywordTree}
               wordselected={versions.find(version => version.id === currentVersionId)!.wordselected}
               currentVersionId={currentVersionId}

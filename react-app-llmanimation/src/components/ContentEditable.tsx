@@ -18,22 +18,26 @@ interface ContentEditableProps {
 
 // How description content editables work: 
 // whenever description updates: description (with [] and {})from specific version as prop; -> formatted to html (with all details saved) -> displayed
-// whenever user edit the content, html content will be sanitized to text, restore all the hidden details, and saved in latestText (latestText will be initiated by description)
-// when user rightclick a word, showDetails is updated to control show/hide detail. also the latest text will be used to update description (so right click is also saving)
+// whenever user edit the content, html content will be sanitized to text, restore all the hidden details, and saved in latestDescriptionText (latestDescriptionText will be initiated by description)
+// when user rightclick a word, showDetails is updated to control show/hide detail. also the latestDescriptionText will be used to update description (so right click is also saving)
 // whenever user tab to save the content, html content will be sanitized to text, restore all the hidden details, be used to update description for specific version
 
+// How param check work:
+// when user click parse desc, description will be sent to GPT and get a response to make a list of parameter text pieces (specificParamList)
+// if paramCheckEnabled, text pieces that is in specificParamList will be rendered green
+// when user rightclick a word, the parameter pieces in specificParamList that contains this word will be removed from the description for this version
 
 // since all the user interactions here must happen when user is on correct page, we can just use currentversionId to access all version specific states
 const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRightClick, onTabPress, onDoubleClick, currentVersionId,  versions, setVersions,  paramCheckEnabled, specificParamList, onSpecificParamRightClick}) => {
   
-  //after value (description) change, update initialValue (initialvalue is to get full hidden info)
+  //after value (description) change, update formatDescriptionHtml (formatDescriptionHtml is to get full hidden info)
   useEffect(() => {
     console.log('contenteditable-useeffect', value)
     const formattedvalue = formatDescription(value);
     setVersions((prevVersions) => {
       const updatedVersions = prevVersions.map(version =>
         version.id === currentVersionId
-          ? { ...version, initialValue: formattedvalue }
+          ? { ...version, formatDescriptionHtml: formattedvalue }
           : version
       );
       return updatedVersions;
@@ -51,7 +55,7 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
 
     const restoredText = restoreDetails(sanitizedText);
     // console.log('handleinput3', restoredText)
-    onChange(restoredText);// typed sth, update latesttext in specific version, can just use currentversionId
+    onChange(restoredText);// typed sth, update latestDescriptionText in specific version, can just use currentversionId
 
   };
 
@@ -66,28 +70,6 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
     }
   };
 
-  //user right click to show details
-  // const handleRightClick = (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
-  //   event.preventDefault();
-  //   const target = event.target as HTMLSpanElement;
-  //   const word = target.getAttribute("data-word");
-  //   console.log('right clicked', word, specificParamList)
-  //   if (word) {
-  //     const parentContent = target.innerHTML;
-  //     const regex = new RegExp(`\\[${word}\\]`);
-  
-  //     if (regex.test(parentContent)) {
-  //       console.log('clicked entity', parentContent)
-  //       onRightClick(word);
-  //     } else if (paramCheckEnabled && specificParamList.includes(word)) {
-  //       const textElement = specificParamList.find(param => param.includes(word));
-  //       console.log('clicked param', textElement)
-  //       if (textElement) {
-  //         onSpecificParamRightClick(textElement);
-  //       }
-  //     }
-  //   }
-  // };
 
   const handleRightClick = (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
     event.preventDefault();
@@ -225,7 +207,7 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
       onContextMenu={handleRightClick}
       onDoubleClick={handleDoubleClick}
       className="custom-textarea"
-      dangerouslySetInnerHTML={{ __html: versions.find(version => version.id === currentVersionId)?.initialValue || '' }}
+      dangerouslySetInnerHTML={{ __html: versions.find(version => version.id === currentVersionId)?.formatDescriptionHtml || '' }}
       style={{ outline: 'none' }} // Remove the blue border outline
     />
   );

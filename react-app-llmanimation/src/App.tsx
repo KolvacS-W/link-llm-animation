@@ -55,7 +55,9 @@ const App: React.FC = () => {
   
     let match;
     while ((match = regex.exec(description)) !== null) {
+      // Split the keyword parts into individual words
       const keywordParts = match[1].trim().split(/\s+/).map(word => unpluralize(uncapitalize(word)));
+      // Add each word as a separate keyword
       keywordParts.forEach(keyword => level1Keywords.add(keyword));
   
       const details = match[2].trim();
@@ -99,6 +101,58 @@ const App: React.FC = () => {
     console.log('keyword tree updated', currentVersionId, newKeywordTree);
     return newKeywordTree;
   };
+  
+  // const extractKeywords = (description: string) => {
+  //   const regex = /\[(.*?)\]\{(.*?)\}/g;
+  //   const level1Keywords = new Set<string>();
+  //   const allSubKeywords = new Set<string>();
+  
+  //   let match;
+  //   while ((match = regex.exec(description)) !== null) {
+  //     const keywordParts = match[1].trim().split(/\s+/).map(word => unpluralize(uncapitalize(word)));
+  //     keywordParts.forEach(keyword => level1Keywords.add(keyword));
+  
+  //     const details = match[2].trim();
+  //     const subKeywords = details
+  //       .split(/[\s,()]+/)
+  //       .map(word => unpluralize(uncapitalize(word.trim())))
+  //       .filter(word => word && !stopwords.has(word));
+  
+  //     subKeywords.forEach(subKeyword => allSubKeywords.add(subKeyword));
+  //   }
+  
+  //   const newKeywordTree: KeywordTree[] = [
+  //     { level: 1, keywords: [] },
+  //     { level: 2, keywords: [] },
+  //   ];
+  
+  //   level1Keywords.forEach(keyword => {
+  //     newKeywordTree[0].keywords.push({
+  //       keyword,
+  //       subKeywords: [],
+  //       children: [],
+  //       codeBlock: '',
+  //       parentKeyword: null
+  //     });
+  //   });
+  
+  //   const uniqueSubKeywords = Array.from(allSubKeywords).filter(
+  //     subKeyword => !level1Keywords.has(subKeyword)
+  //   );
+  
+  //   uniqueSubKeywords.forEach(subKeyword => {
+  //     newKeywordTree[1].keywords.push({
+  //       keyword: subKeyword,
+  //       subKeywords: [],
+  //       children: [],
+  //       codeBlock: '',
+  //       parentKeyword: null
+  //     });
+  //   });
+  
+  //   console.log('keyword tree updated', currentVersionId, newKeywordTree);
+  //   return newKeywordTree;
+  // };
   
   // Dummy implementations of uncapitalize and unpluralize for demonstration purposes
   function uncapitalize(word: string): string {

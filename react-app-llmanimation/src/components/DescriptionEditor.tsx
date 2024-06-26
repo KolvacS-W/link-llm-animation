@@ -173,6 +173,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     Try to include css and javascript code in html like the code snippet.
     Return response in this format: (Code:  \`\`\`html html code \`\`\`html, \`\`\`js javascript code, leave blank if none \`\`\`js, \`\`\`css css code, leave blank if none \`\`\`css; Explanation: explanations of the code). Instruction: ${version?.description}`;
     try {
+      console.log('meet eytan', prompt)
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -226,6 +227,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
 `;
 
     try {
+      console.log('prompt eytan', newPrompt)
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -392,7 +394,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       Extend the original prompt, to make it more expressive with more details that suits the prompt description and also give more clear instructions to what the animation code should be (e.g., tell in detail elements (e.g., eyes, windows) of objects (e.g., fish, house), the features (e.g., shape, color) and the changes (e.g., movement, size, color) as well as how they are made in animation code).
       Just add details and descriptions without changing the sentence structure.\\
       return 4 extended prompts in the response (divided by ///), and only return these extended. prompts in the response.
-      Make the extended prompt simple and precise, just describe the necessary details. Donnot add too much subjective modifier and contents irrelevant to original prompt.
+      Make the extended prompt simple and precise, just describe the necessary details. Do not add too many subjective modifiers and contents irrelevant to original prompt.
       Example:
       Original prompt:
       A fish swimming in ocean

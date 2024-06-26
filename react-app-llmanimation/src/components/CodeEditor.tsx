@@ -83,6 +83,10 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
     processKeywordTree(versionId);
   };
 
+  const handleRun = (versionId: string) => {
+    onApply({ html, css, js });
+  };
+
   const updateHighlightPieces = (versionId: string | null) => {
     if (!versionId) return;
     
@@ -358,6 +362,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
 
       const data = await response.json();
       const newDescriptionContent = data.choices[0]?.message?.content;
+      console.log('prompt for update code:', prompt)
 
       if (newDescriptionContent) {
         const updatedDescription = newDescriptionContent.replace('] {', ']{');
@@ -524,6 +529,7 @@ const CustomCodeEditor: React.FC<CodeEditorProps> = ({
         {renderActiveTab()}
       </div>
       <div className="button-group">
+        <button className="blue-button" onClick={() => handleRun(currentVersionId || '')}>Run</button>
         <button className="blue-button" onClick={() => handleParseRun(currentVersionId || '')}>Parse and Run</button>
         <button className="purple-button" onClick={() => handleUpdateCode(currentVersionId || '')}>Update Code</button>
         <button 

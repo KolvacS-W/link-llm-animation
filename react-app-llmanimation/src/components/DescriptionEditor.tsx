@@ -193,7 +193,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
         setVersions(prevVersions => {
           const updatedVersions = prevVersions.map(version =>
             version.id === versionId
-              ? { ...version, code: newCode }
+              ? { ...version, code: newCode, savedOldCode: newCode }
               : version
           );
           return updatedVersions;
@@ -249,7 +249,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
               ? {
                   ...version,
                   description: updatedDescription,
-                  savedDescription: updatedDescription,
+                  savedOldDescription: updatedDescription,
                   keywordTree: extractKeywords(updatedDescription),
                 }
               : version
@@ -273,16 +273,17 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       return updatedVersions;
     });
 
-    const prompt = `Based on the following old code and its old description and an updated description, provide an updated code. \\
+    const prompt = `Based on the following old code and its old description, I am showing you an updated description and you will provide an updated code. \\
     Old code: HTML: \`\`\`html${savedOldCode.html}\`\`\` CSS: \`\`\`css${savedOldCode.css}\`\`\` JS: \`\`\`js${savedOldCode.js}\`\`\` \\
     Old Description: ${versions.find(version => version.id === versionId)?.savedOldDescription}. \\
     New description: ${version?.description}. \\
-    Include updated code and the explanation of what changed in the updated description, and why your change in the code can match this description change.\\
-    Still use anime.js and svg paths as backbone of the animation code as the old code.\\
-    Use customizable svg paths for object movement. You can refer to old code to see example methods and code formats and refine it according to the new description.\\
+    In the description, words in [] are important entities that must be created by code, and following entities are detailed hints in {} to specify how to create these entities and animations with code.
+    Still use anime.js and use customizable svg paths for object movement. You can refer to old code to see example methods and code formats and refine it according to the new description.\\
     Donnot use any external elements like images or svg, create everything with code.\\
     Try to include css and javascript code in html like the old code.\\
-    Try to modify as little code as possible, keep as much original objects and structure as possible, only change the necessary parts that is updated by new description.\\
+    Make sure to modify as little code as possible, keep as much original objects and structure as possible, only change the necessary parts that is updated by new description.\\
+    Unless chenged in description, donnot change html and body Styles or svg styles in the <style> tag.\\
+    Include updated code and the explanation of what changed in the updated description, and why your change in the code can match this description change, and how your change didn't affect the existing code pieces or CSS Styles that remains the same according to description.\\
     Return response in this format: (Code:  \`\`\`html html code \`\`\`html, \`\`\`js javascript code, leave blank if none \`\`\`js, \`\`\`css css code, leave blank if none \`\`\`css; Explanation: explanation content)`;
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -300,11 +301,13 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       const data = await response.json();
       const content = data.choices[0]?.message?.content;
       if (content) {
+        console.log('prompt for update description', prompt)
+        console.log('response after update description', content)
         const newCode = parseGPTResponse(content);
         setVersions(prevVersions => {
           const updatedVersions = prevVersions.map(version =>
             version.id === versionId
-              ? { ...version, code: newCode }
+              ? { ...version, code: newCode, savedOldCode: newCode }
               : version
           );
           return updatedVersions;
@@ -359,6 +362,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
               ? {
                   ...version,
                   description: updatedDescription,
+                  savedOldDescription: updatedDescription,
                   keywordTree: extractKeywords(updatedDescription),
                 }
               : version
@@ -386,6 +390,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
     try {
       const prompt = `Help me extend a prompt and add more details. The prompt is for creating animations with anime.js. 
       Extend the original prompt, to make it more expressive with more details that suits the prompt description and also give more clear instructions to what the animation code should be (e.g., tell in detail elements (e.g., eyes, windows) of objects (e.g., fish, house), the features (e.g., shape, color) and the changes (e.g., movement, size, color) as well as how they are made in animation code).
+      Just add details and descriptions without changing the sentence structure.\\
       return 4 extended prompts in the response (divided by ///), and only return these extended. prompts in the response.
       Make the extended prompt simple and precise, just describe the necessary details. Donnot add too much subjective modifier and contents irrelevant to original prompt.
       Example:
@@ -410,7 +415,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4-turbo",
+          model: "gpt-3.5-turbo",
           messages: [
             { role: "system", content: "You are a creative programmer." },
             { role: "user", content: prompt },

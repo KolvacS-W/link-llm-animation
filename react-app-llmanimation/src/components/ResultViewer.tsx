@@ -59,7 +59,7 @@ const ResultViewer: React.FC<ResultViewerProps> = ({ code }) => {
 
   return (
     <div className="result-viewer">
-      <iframe ref={iframeRef} title="Result Viewer" />
+      <iframe key={JSON.stringify(code)} ref={iframeRef} title="Result Viewer" />
     </div>
   );
 };

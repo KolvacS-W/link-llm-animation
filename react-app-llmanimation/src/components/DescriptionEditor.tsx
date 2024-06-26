@@ -70,7 +70,7 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({
       return updatedVersions;
     });
   
-    const prompt = `Find the text pieces that is about specific code parameters (e.g, name, size, number, path, coordinates) from the given description of an animation program made by anime.js.
+    const prompt = `Find the text pieces that is about specific code details (e.g, variable name, parameters, size, number, path, coordinates) from the given description of an animation program made by anime.js.
                     and return a list of the found text pieces. make sure the returned text pieces are exactly from the description. Splift the text pieces with ///.
                     Example description:
                     A [cottage] {rect element with x: 50, y: 80, width: 100, height: 60, filled in white} perched on 

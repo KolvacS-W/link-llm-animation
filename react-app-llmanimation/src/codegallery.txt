@@ -216,3 +216,130 @@ A [cottage] {rect element with x: 50, y: 80, width: 100, height: 60, filled in w
 </body>
 </html>
 
+A [white rabbit] {composed of a round body and head, with additional details such as long ears shaped using quadratic bezier curves and pink eyes, initially not displayed but shown once the animation starts} is magically [appearing] {the rabbit, initially scaled down and hidden, dynamically grows and becomes visible through a CSS-based transformation triggered by JavaScript} from a [magician’s hat] {black rect element with id 'hat', positioned centrally and sized appropriately, topped with a brim for added realism} against a [skyblue background] {covering the entire viewport consistently} .
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      background-color: skyblue; /* Background color remains skyblue as specified */
+    }
+    svg {
+      width: 100vmin;
+      height: 100vmin;
+    }
+    #rabbit {
+      fill: white; /* Rabbit is white */
+      stroke: black; /* Outline color change to black for contrast */
+      stroke-width: 2;
+    }
+    #hat {
+      fill: black; /* Hat color remains black */
+      stroke: none; /* No stroke needed on the hat */
+    }
+  </style>
+</head>
+<body>
+  <svg viewBox="0 0 200 200">
+    <!-- The magician's hat with added brim -->
+    <rect id="hat" x="45" y="100" width="110" height="100"></rect>
+    <rect x="30" y="95" width="140" height="10" fill="black"></rect> <!-- Hat's brim -->
+
+    <!-- Updated rabbit with details -->
+    <g id="rabbit" style="display: none;">
+      <!-- Body and head of the rabbit -->
+      <circle cx="100" cy="85" r="30"></circle>
+      <circle cx="100" cy="55" r="20"></circle>
+      <!-- Ears of the rabbit -->
+      <path d="M100,25 Q95,5 90,25"></path>
+      <path d="M100,25 Q105,5 110,25"></path>
+      <!-- Adding pink eyes to the rabbit -->
+      <circle cx="92" cy="50" r="3" fill="pink"></circle>
+      <circle cx="108" cy="50" r="3" fill="pink"></circle>
+    </g>
+  </svg>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script>
+    anime({
+      targets: '#rabbit',
+      translateY: [-50, 0],
+      scale: [
+        {value: 0.1, duration: 500},
+        {value: 1, duration: 500}
+      ],
+      changeBegin: function() {
+        document.getElementById('rabbit').style.display = "block";
+      },
+      easing: 'easeInOutQuad',
+      direction: 'alternate',
+      loop: true
+    });
+  </script>
+</body>
+</html>
+
+A [gray rabbit] {composed of elements #rabbitBody and #rabbitHead for the body and head, #rabbitEarLeft and #rabbitEarRight for elongated ears, all filled with gray color} with [expressive eyes] {styled using #rabbitEye1 and #rabbitEye2, each a circle with a radius of 3 and now colored pink} is [emerging] {animated along a path defined by #rabbitPath with coordinates M100,200 V50 Q110,0 100,50, utilizing 'easeInOutQuad' easing, over a duration of 5000ms, alternating direction, looping} from a short [velvet blue top hat] {constructed from #hatBox, #hatTop, and #hatBrim, with main components colored #0000fe} with a [silver band] {represented by #hatBrim, illustrated as a rect element at position x=60, y=70, width=80, height=10, colored #8b9dc3} , with the background of a stage with deep red curtains.
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    svg {
+      width: 100vmin;
+      height: 100vmin;
+    }
+  </style>
+</head>
+<body>
+  <svg viewBox="0 0 200 200">
+  
+    <!-- path for the rabbit to appear from the hat -->
+    <path id="rabbitPath" d="M100,200 V50 Q110,0 100,50" fill="transparent" stroke="transparent" />
+
+    <circle id="rabbitBody" cx="0" cy="10" r="20" fill="gray" />
+    <circle id="rabbitHead" cx="0" cy="-10" r="15" fill="gray" />
+    <ellipse id="rabbitEarLeft" cx="-5" cy="-10" rx="3" ry="30" fill="gray" />
+    <ellipse id="rabbitEarRight" cx="5" cy="-10" rx="3" ry="30" fill="gray" />
+    <circle id="rabbitEye1" cx="-4" cy="-10" r="3" fill="pink" />
+    <circle id="rabbitEye2" cx="4" cy="-10" r="3" fill="pink" />
+    <ellipse id="hatTop" cx="100" cy="70" rx="40" ry="20" fill="#0000fe" />
+    <rect id="hatBrim" x="60" y="70" width="80" height="10" fill="#8b9dc3" />
+    <rect id="hatBox" x="80" y="80" width="40" height="120" fill="#0000fe" />
+
+  </svg>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>  
+  
+<script>
+    anime({
+      targets: ['#rabbitBody', '#rabbitHead', '#rabbitTail', '#rabbitEye1', '#rabbitEye2', '#rabbitEarLeft', '#rabbitEarRight'],
+      translateX: anime.path('#rabbitPath')('x'),
+      translateY: anime.path('#rabbitPath')('y'),
+      easing: 'easeInOutQuad',
+      duration: 5000,
+      direction: 'alternate',
+      loop: true
+    });
+</script>
+
+</body>
+</html>

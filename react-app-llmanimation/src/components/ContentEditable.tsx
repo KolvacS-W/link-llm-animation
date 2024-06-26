@@ -52,24 +52,70 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
     const sanitizedText = sanitizeText(innerHTML);
     // console.log('handleinput1', sanitizedText)
     // console.log('handleinput2', versions.find(version => version.id === currentVersionId)?.hiddenInfo)
-
-    const restoredText = restoreDetails(sanitizedText);
+    const version = versions.find(version => version.id === currentVersionId);
+    let hiddenInfo: string[] = version?.hiddenInfo || [];
+    const restoredText = restoreDetails(sanitizedText, hiddenInfo);
     // console.log('handleinput3', restoredText)
     onChange(restoredText);// typed sth, update latestDescriptionText in specific version, can just use currentversionId
 
   };
 
   //user press tab to save edit
+  // const handleKeyDown = (event: React.KeyboardEvent<HTMLSpanElement>) => {
+  //   if (event.key === 'Tab') {
+  //     event.preventDefault(); // Prevent the default tab behavior
+  //     const innerHTML = (event.target as HTMLSpanElement).innerHTML;
+  //     const sanitizedText = sanitizeText(innerHTML);
+  //     const restoredText = restoreDetails(sanitizedText);
+  //     onTabPress(restoredText); // tab pressed, update description for specific version, can just use currentversionId
+  //   }
+  // };
+  
+  //user press tab to save edit
+  //this updated handlekeydown will ensure if user delete an entity, there is no bug
   const handleKeyDown = (event: React.KeyboardEvent<HTMLSpanElement>) => {
     if (event.key === 'Tab') {
       event.preventDefault(); // Prevent the default tab behavior
       const innerHTML = (event.target as HTMLSpanElement).innerHTML;
       const sanitizedText = sanitizeText(innerHTML);
-      const restoredText = restoreDetails(sanitizedText);
+  
+      // Get original description and hiddenInfo
+      const version = versions.find(version => version.id === currentVersionId);
+      const originalDescription = version?.description || '';
+      let hiddenInfo: string[] = version?.hiddenInfo || [];
+      let updatedhiddenInfo: string[] = hiddenInfo;
+      updatedhiddenInfo = hiddenInfo;
+      // Extract entities in [] from original description
+      const originalEntities = (originalDescription.match(/\[(.*?)\]/g) || []).map(entity => entity.replace(/[\[\]]/g, ''));
+      const sanitizedEntities = (sanitizedText.match(/\[(.*?)\]/g) || []).map(entity => entity.replace(/[\[\]]/g, ''));
+  
+      // Check for missing entities
+      const missingEntities = originalEntities.filter(entity => !sanitizedEntities.includes(entity));
+      
+      if (missingEntities.length > 0) {
+        // Get index of the missing entity
+        const missingIndex = originalEntities.indexOf(missingEntities[0]);
+        console.log('a word missing at', missingIndex)
+        // Remove the corresponding hidden info
+        updatedhiddenInfo = hiddenInfo.filter((_, index) => index !== missingIndex);
+        console.log('update hidden info', updatedhiddenInfo)
+        // Update the hidden info in the version
+        setVersions(prevVersions => {
+          const updatedVersions = prevVersions.map(version =>
+            version.id === currentVersionId
+              ? { ...version, hiddenInfo: updatedhiddenInfo}
+              : version
+          );
+          return updatedVersions;
+        });
+      }
+  
+      // Restore text and proceed
+      const restoredText = restoreDetails(sanitizedText, updatedhiddenInfo);
       onTabPress(restoredText); // tab pressed, update description for specific version, can just use currentversionId
     }
   };
-
+  
 
   const handleRightClick = (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
     event.preventDefault();
@@ -177,7 +223,7 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
 
   // since the html texts (formatteddescription) don't contain details once they are hidden, everytime we need to update the description, 
   // we need to add back the hidden details
-  const restoreDetails = (text: string): string => {
+  const restoreDetails = (text: string, hiddenInfo: string[]): string => {
     const parts = text.split(/(\[.*?\])/g);
     console.log('parts', parts);
     let hiddenInfoIndex = 0;
@@ -186,7 +232,8 @@ const ContentEditable: React.FC<ContentEditableProps> = ({ value, onChange, onRi
         const nextPart = parts[index + 1] || '';
         const trimmedNextPart = nextPart.replace(/\s+/g, ' ').trim(); // Replace multiple whitespace with a single space and trim
         const hasDetail = /\{\s*.*?\s*\}/.test(trimmedNextPart); // Check if trimmed nextPart contains {}
-        const hiddenInfo = versions.find(version => version.id === currentVersionId)?.hiddenInfo || [];
+        // const hiddenInfo = versions.find(version => version.id === currentVersionId)?.hiddenInfo || [];
+        console.log('restore detail, hidden info', hiddenInfo, versions)
         console.log('restore detail', part, hasDetail, hiddenInfoIndex, hiddenInfo[hiddenInfoIndex]);
         if (!hasDetail && hiddenInfoIndex < hiddenInfo.length) {
           return `${part}{${hiddenInfo[hiddenInfoIndex++]}}`;
